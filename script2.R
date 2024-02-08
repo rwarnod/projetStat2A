@@ -4,8 +4,6 @@ rm(list=ls())
 # calculer limite de detection et de quantification
 # faire une fonction pour tout
 
-
-
 #setwd("~/Documents/projet_stat/data") Camille
 setwd("~/Cours2A/projetStat2/projetStat2A/data") #Raymond
 library(dplyr)
@@ -16,13 +14,13 @@ fModele <- function(cheminCsv, nomX = names(etalonnage)[1], nomY= names(etalonna
   etalonnage <- read.csv2(paste0(cheminCsv, ".csv"), sep = ",")
   print("Summary :")
   print( summary(etalonnage) )
-  modele <- lm(etalonnage[,1]~etalonnage[,2])
+  modele <- lm(etalonnage[,2]~etalonnage[,1])
   print(paste0("Regression linéaire de la ",nomY,"en fonction de ",nomY))
   print(summary(modele))
   
-  par(mfrow=c(2,2))
-  plot(modele)
-  par(mfrow=c(1,1))
+  # par(mfrow=c(2,2))
+  # plot(modele)
+  # par(mfrow=c(1,1))
   print("Test de Breusch-Pagan")
   bp_test <- bptest(modele)
   print(bp_test)
@@ -34,6 +32,10 @@ fModele <- function(cheminCsv, nomX = names(etalonnage)[1], nomY= names(etalonna
   b1 <- coef(modele)[2]
   LOB <-  (qt(1 - alpha/2, df = df)*sigma_y-b0)/b1
   print(paste0("Limite de blanc: ", LOB))
+  
+  # etalonnage <- etalonnage %>%
+  #   mutate(esti = b0 +b1*Concentration)
+  # plot(etalonnage$Concentration, etalonnage$esti)
   
   
   ggplot(etalonnage) +
@@ -48,54 +50,7 @@ fModele <- function(cheminCsv, nomX = names(etalonnage)[1], nomY= names(etalonna
 
 fModele("etalonnage_color")
 
-
-
-#etalonnage = read.csv2("etalonnage_9_02_23.csv", sep = ",")
-etalonnage = read.csv2("etalonnage_color.csv", sep = ",")
-summary(etalonnage)
-
-ggplot(etalonnage) +
-  aes(x = Concentration, y = DO) +
-  geom_point(colour = "red", alpha = 1) +
-  labs(x = "Concentration", y = "Temps") +
-  geom_smooth(method = "lm") +
-#  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
-  theme_light()
-
-modele <- lm(Concentration~., data = etalonnage)
-summary(modele)
-
-
-par(mfrow=c(2,2))
-plot(modele)
-par(mfrow=c(1,1))
-# Effectuez le test de Breusch-Pagan
-bp_test <- bptest(modele)
-print(bp_test)
-
-
-alpha = 0.95
-df = as.numeric(nobs(modele))
-sigma_y <- summary(modele)$sigma
-b0 <- coef(modele)[1]
-b1 <- coef(modele)[2]
-LOB =  (qt(1 - alpha/2, df = df)*sigma_y-b0)/b1
-
-#II
-etalonnage2 = read.csv2("etalonnage_dagi.csv", sep = ",")
-
-summary(etalonnage2)
-
-ggplot(etalonnage2) +
-  aes(x = Concentration, y = Temps) +
-  geom_point(colour = "red", alpha = 1) +
-  labs(x = "Concentration", y = "Temps") +
-  geom_smooth(method = "lm") +
-  #  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
-  theme_light()
-
-modele2 <- lm(Concentration~., data = etalonnage)
-summary(modele2)
+fModele("etalonnage_dagi")
 
 #III
 
