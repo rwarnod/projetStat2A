@@ -1,5 +1,5 @@
 rm(list=ls())
-setwd("~/Documents/projet_stat")
+setwd("~/Documents/projet_stat/data")
 
 library(dplyr)
 library(ggplot2)

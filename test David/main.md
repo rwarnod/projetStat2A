@@ -1,3 +1,10 @@
+---
+editor_options:
+  markdown:
+    wrap: 72
+output: pdf_document
+---
+
 # Introduction
 
 # cas d'une droite d'étalonnage
