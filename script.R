@@ -1,6 +1,7 @@
 rm(list=ls())
-setwd("~/Documents/projet_stat")
-setwd("~/Documents/projetStat2/projetStat2")
+
+#setwd("~/Documents/projet_stat") Camille
+#setwd("~/Cours2A/projetStat2/projetStat2A") Raymond
 
 library(dplyr)
 library(ggplot2)
