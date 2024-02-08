@@ -1,5 +1,11 @@
 rm(list=ls())
 
+# calculer la variance des balncs pour verifier l'homocedasticité
+# calculer limite de detection et de quantification
+# faire une fonction pour tout
+
+
+
 #setwd("~/Documents/projet_stat/data") Camille
 #setwd("~/Cours2A/projetStat2/projetStat2A/data") Raymond
 library(dplyr)
