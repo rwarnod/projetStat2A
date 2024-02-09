@@ -10,8 +10,6 @@ library(dplyr)
 library(ggplot2)
 library(lmtest)
 
-cheminCsv<- "etalonnage_color"
-
 fModele <- function(
     cheminCsv, 
     nomX = names(etalonnage)[1],
@@ -77,9 +75,9 @@ fModele <- function(
     aes(x = etalonnage[,1], y = etalonnage[,2]) +
     #aes(x = Concentration, y = DO) +
     geom_point(colour = "red", alpha = 1) +
-    labs(x = nomX, y = nomY) +
+    labs(title = cheminCsv, x = nomX, y = nomY) +
     geom_smooth(method = "lm") +
-    #  geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
+      geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
     theme_light()
 }
 
