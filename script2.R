@@ -10,6 +10,8 @@ library(dplyr)
 library(ggplot2)
 library(lmtest)
 
+cheminCsv<- "etalonnage_color"
+
 fModele <- function(cheminCsv, nomX = names(etalonnage)[1], nomY= names(etalonnage)[2]){
   etalonnage <- read.csv2(paste0(cheminCsv, ".csv"), sep = ",")
   print("Summary :")
@@ -26,12 +28,24 @@ fModele <- function(cheminCsv, nomX = names(etalonnage)[1], nomY= names(etalonna
   print(bp_test)
   
   alpha = 0.95
-  df = as.numeric(nobs(modele))
-  sigma_y <- summary(modele)$sigma
+    #df = as.numeric(nobs(modele))
+    #sigma_y <- summary(modele)$sigma
   b0 <- coef(modele)[1]
   b1 <- coef(modele)[2]
-  LOB <-  (qt(1 - alpha/2, df = df)*sigma_y-b0)/b1
-  print(paste0("Limite de blanc: ", LOB))
+
+  #LOB <-  (qt(1 - alpha/2, df = df)*sigma_y-b0)/b1
+  #rrrrrrrrrrrrrr
+    n <- nrow(etalonnage)
+    dll <- n - 1
+    quantileStudent <- qt(1 - alpha/2, df = dll)
+    mY <- mean(etalonnage[,2])
+    sigma_y <- sd(etalonnage[,2])
+    LOB <- (mY + quantileStudent * sigma_y * ((n+1)/n)^0.5 - b0 ) / b1
+  #rrrrrrrrrrrrrrrrrrrrrr
+  print(paste0("Limite de blanc gaussien: ", LOB))
+  
+  
+  
   
   # etalonnage <- etalonnage %>%
   #   mutate(esti = b0 +b1*Concentration)
