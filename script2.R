@@ -97,9 +97,6 @@ etalonnage_color <- read.csv2("etalonnage_color.csv", sep = ",")
 etalonnage_dagi<- read.csv2("etalonnage_dagi.csv", sep = ",")
 
 
-
-
-
 #III
 
 #etalonnage3 = read.csv2("etalonnage_9_02_23.csv", sep = ",")
