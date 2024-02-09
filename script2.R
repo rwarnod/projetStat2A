@@ -24,7 +24,7 @@ fModele <- function(
   print("Summary :")
   print( summary(etalonnage) )
   modele <- lm(etalonnage[,2]~etalonnage[,1])
-  print(paste0("Regression linéaire de la ",nomY,"en fonction de ",nomY))
+  print(paste0("Regression linéaire de ", nomY,"en fonction de ",nomX))
   print(summary(modele))
   
   # par(mfrow=c(2,2))
@@ -85,7 +85,16 @@ fModele <- function(
 
 liste_fichiers <- list.files(".", pattern="csv")
 
+# Lancement du modele lineaire sur tous les fichiers csv
 Map(fModele, liste_fichiers)
+
+#les limites de blancs sont un peu bizzares.
+
+# ouverture des fichiers pour vérifier
+etalonnage_11_01_23 <- read.csv2("etalonnage_11_01_23.csv", sep = ",")
+etalonnage_20_10_23 <- read.csv2("etalonnage_20_10_23.csv", sep = ",")
+etalonnage_color <- read.csv2("etalonnage_color.csv", sep = ",")
+etalonnage_dagi<- read.csv2("etalonnage_dagi.csv", sep = ",")
 
 
 
