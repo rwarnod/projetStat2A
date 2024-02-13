@@ -47,8 +47,10 @@ fModele <- function(
     quantileStudent <- qt(1 - alpha, df = dll)
     mY <- mean(etalonnage[,2])
     sigma_y <- sd(etalonnage[,2])
-    LOB <- (mY + quantileStudent * sigma_y * ((n+1)/n)^0.5 - b0 ) / b1
-  #rrrrrrrrrrrrrrrrrrrrrr
+    LOB <- mY + (quantileStudent * sigma_y * ((n+1)/n)^0.5 - b0 ) / b1
+ 
+    
+ #rrrrrrrrrrrrrrrrrrrrrr
   print(paste0("Limite de blanc gaussien: ", LOB))
   
   # calcul du LOB à partir des données
@@ -87,6 +89,36 @@ liste_fichiers <- list.files(".", pattern="csv")
 Map(fModele, liste_fichiers)
 
 #les limites de blancs sont un peu bizzares.
+
+
+#### Calcul des limites de blancs pour avec les mesures dédié
+
+fLOBDedie <- function(blanc,etalonnage,alpha=0.05){
+  modele <- lm(etalonnage[,2]~etalonnage[,1])
+  b0 <- coef(modele)[1]
+  b1 <- coef(modele)[2]
+  n <- length(blanc)
+  dll <- n - 1
+  quantileStudent <- qt(1 - alpha, df = dll)
+  mY <- mean(blanc)
+  sigma_y <- sd(blanc)
+  LOB <- mY + (quantileStudent * sigma_y * ((n+1)/n)^0.5 - b0 ) / b1
+  return (LOB)
+}
+
+blanc <-read.csv2("blancDabitranChrono.csv")[,1]
+etalonnage <- read.csv2("etalonnage_dagi.csv",sep=",")
+
+fLOBDedie(read.csv2("blancDabitranChrono.csv")[,1],
+          read.csv2("etalonnage_dagi.csv",sep=",")
+          )
+
+etalonnage <- read.csv2("etalonnage_color.csv",sep=",") %>% 
+  mutate(DO=log(DO))
+
+fLOBDedie(read.csv2("blancDabitranColor.csv")[,1],etalonnage)
+
+
 
 # ouverture des fichiers pour vérifier
 etalonnage_11_01_23 <- read.csv2("etalonnage_11_01_23.csv", sep = ",")
