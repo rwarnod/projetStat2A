@@ -10,6 +10,8 @@ library(dplyr)
 library(ggplot2)
 library(lmtest)
 
+#### Calcul des limites de blancs à partir de la droite d'étalonnage
+
 fModele <- function(
     cheminCsv, 
     nomX = names(etalonnage)[1],
@@ -22,38 +24,24 @@ fModele <- function(
   print("Summary :")
   print( summary(etalonnage) )
   modele <- lm(etalonnage[,2]~etalonnage[,1])
-  print(paste0("Regression linéaire de ", nomY,"en fonction de ",nomX))
+  print(paste0("Regression linéaire de ", nomY," en fonction de ",nomX))
   print(summary(modele))
   
-  # par(mfrow=c(2,2))
-  # plot(modele)
-  # par(mfrow=c(1,1))
+
   print("Test de Breusch-Pagan")
   bp_test <- bptest(modele)
   print(bp_test)
   
-  #alpha = 0.95
-    #df = as.numeric(nobs(modele))
-    #sigma_y <- summary(modele)$sigma
+  
   b0 <- coef(modele)[1]
   b1 <- coef(modele)[2]
 
   #LOB <-  (qt(1 - alpha/2, df = df)*sigma_y-b0)/b1
   
-  # calcul du LOB Gaussien
-  #rrrrrrrrrrrrrr
-    n <- nrow(etalonnage)
-    dll <- n - 1
-    quantileStudent <- qt(1 - alpha, df = dll)
-    mY <- mean(etalonnage[,2])
-    sigma_y <- sd(etalonnage[,2])
-    LOB <- mY + (quantileStudent * sigma_y * ((n+1)/n)^0.5 - b0 ) / b1
- 
-    
- #rrrrrrrrrrrrrrrrrrrrrr
-  print(paste0("Limite de blanc gaussien: ", LOB))
-  
-  # calcul du LOB à partir des données
+
+  # calcul du LOB à partir de l'étalon
+  n <- nrow(etalonnage)
+  sigma_y <- sd(etalonnage[,2])
   dll <- n - 2
   quantileStudent <- qt(1 - alpha, df = dll)
   b1ab <- abs(b1)
@@ -63,15 +51,9 @@ fModele <- function(
   A <- quantileStudent * (sigma_y/b1ab)
   LOB <- A * ( (n+1) /n + (SX*SX) /(n*D) )^0.5
   
-  print(paste0("Limite de blanc à partir des données: ", LOB))
+  print(paste0("Limite de blanc à partir du cheval: ", LOB))
   # B <- A *sqrt(n) / (sqrt(D)*b1ab)
   # LOB <- B* ( (b1^2)*D*(n+1) /n^2 + mY^2 - 2*mY*b0 + b0^2)^0.5
-  
-  
-  # etalonnage <- etalonnage %>%
-  #   mutate(esti = b0 +b1*Concentration)
-  # plot(etalonnage$Concentration, etalonnage$esti)
-  
   
   ggplot(etalonnage) +
     aes(x = etalonnage[,1], y = etalonnage[,2]) +
@@ -85,13 +67,10 @@ fModele <- function(
 
 liste_fichiers <- list.files(".", pattern="csv")
 
-# Lancement du modele lineaire sur tous les fichiers csv
-Map(fModele, liste_fichiers)
+Map(fModele, liste_fichiers[3:6])
+# ca ne marche pas très bien pour dagi et color.
 
-#les limites de blancs sont un peu bizzares.
-
-
-#### Calcul des limites de blancs pour avec les mesures dédié
+#### Calcul des limites de blancs avec des mesures dédiées
 
 fLOBDedie <- function(blanc,etalonnage,alpha=0.05){
   modele <- lm(etalonnage[,2]~etalonnage[,1])
@@ -117,6 +96,26 @@ etalonnage <- read.csv2("etalonnage_color.csv",sep=",") %>%
   mutate(DO=log(DO))
 
 fLOBDedie(read.csv2("blancDabitranColor.csv")[,1],etalonnage)
+
+# il y a un truc qui ne va pas
+
+### Calcul limite de detection
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
