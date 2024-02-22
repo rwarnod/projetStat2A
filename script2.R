@@ -68,7 +68,7 @@ fModele <- function(
   a <- (1 - n*K/D)
   b <- 2*(n*K*mX/D - LOB)
   c <- LOB^2 - K*(n+1)/n - (n*K*mX^2)/D
-  delta <- b^2 - 4*a*C
+  delta <- b^2 - 4*a*c
   print(paste0("Delta : ", delta))
   LID1 <- (-b - sqrt(delta)) / (2*a)
   LID2 <- (-b + sqrt(delta)) / (2*a)
@@ -94,7 +94,7 @@ fichiersArgatroban <- c("argatrobanEtalonAvril.csv",
                         "argatrobanEtalonJanvier.csv",
                         "argatrobanEtalonOctobre.csv")
 
-LOB_Argatroban <-do.call("rbind", Map(fModele, fichiersArgatroban))
+Argatroban <-do.call("rbind", Map(fModele, fichiersArgatroban))
 # les LOB sont trop haut
 
 # Droites de régression:
