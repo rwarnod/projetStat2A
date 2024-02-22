@@ -54,9 +54,24 @@ fModele <- function(
   A <- quantileStudent * (sigma_y/b1ab)
   LOB <- A * ( (n+1) /n + (SX*SX) /(n*D) )^0.5
   
+  # On calcul la limite de détection LID 
+  
   print(paste0("Limite de blanc à partir des données d'étalonnage: ", LOB))
   # B <- A *sqrt(n) / (sqrt(D)*b1ab)
   # LOB <- B* ( (b1^2)*D*(n+1) /n^2 + mY^2 - 2*mY*b0 + b0^2)^0.5
+  
+  # On calcul la limite de détection LID
+  quantileStudent <- qt(alpha, df = dll)
+  K <- (quantileStudent*sigma_y/b1)^2
+  mX <- SX/n
+  
+  a <- (1 - n*K/D)
+  b <- 2*(n*K*mX/D - LOB)
+  c <- LOB^2 - K*(n+1)/n - (n*K*mX^2)/D
+  delta <- b^2 - 4*a*C
+  print(paste0("Delta : ", delta))
+  LID1 <- (-b - sqrt(delta)) / (2*a)
+  LID2 <- (-b + sqrt(delta)) / (2*a)
   
   if (retour == "graph"){
     ggplot(etalonnage) +
@@ -68,7 +83,7 @@ fModele <- function(
   #    geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
     theme_light()
   }else{
-    data.frame( b0 = b0, b1 = b1, sigma_y = sigma_y, D=D, LOB= LOB )
+    data.frame( b0 = b0, b1 = b1, sigma_y = sigma_y, D=D, LOB= LOB, LID1 = LID1, LID2 = LID2 )
   }
 }
 
@@ -120,6 +135,7 @@ fLOBDedie(read.csv2("blancDabitranColor.csv")[,1],etalonnage)
 # il y a un truc qui ne va pas
 
 ### Calcul limite de detection
+
 
 
 
