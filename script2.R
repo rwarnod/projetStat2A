@@ -16,21 +16,24 @@ fModele <- function(
     cheminCsv, 
     nomX = names(etalonnage)[1],
     nomY= names(etalonnage)[2],
-    alpha = 0.05
+    alpha = 0.05,
+    titreGraph = cheminCsv,
+    retour = "df"
   ){
   print(cheminCsv)
   #etalonnage <- read.csv2(paste0(cheminCsv, ".csv"), sep = ",")
   etalonnage <- read.csv2(cheminCsv)
-  print("Summary :")
-  print( summary(etalonnage) )
+  etalonnage
+  # print("Summary :")
+  # print( summary(etalonnage) )
   modele <- lm(etalonnage[,2]~etalonnage[,1])
   print(paste0("Regression linéaire de ", nomY," en fonction de ",nomX))
   print(summary(modele))
   
 
-  print("Test de Breusch-Pagan")
-  bp_test <- bptest(modele)
-  print(bp_test)
+  # print("Test de Breusch-Pagan")
+  # bp_test <- bptest(modele)
+  # print(bp_test)
   
   
   b0 <- coef(modele)[1]
@@ -51,24 +54,37 @@ fModele <- function(
   A <- quantileStudent * (sigma_y/b1ab)
   LOB <- A * ( (n+1) /n + (SX*SX) /(n*D) )^0.5
   
-  print(paste0("Limite de blanc à partir du cheval: ", LOB))
+  print(paste0("Limite de blanc à partir des données d'étalonnage: ", LOB))
   # B <- A *sqrt(n) / (sqrt(D)*b1ab)
   # LOB <- B* ( (b1^2)*D*(n+1) /n^2 + mY^2 - 2*mY*b0 + b0^2)^0.5
   
-  ggplot(etalonnage) +
+  if (retour == "graph"){
+    ggplot(etalonnage) +
     aes(x = etalonnage[,1], y = etalonnage[,2]) +
     #aes(x = Concentration, y = DO) +
     geom_point(colour = "red", alpha = 1) +
-    labs(title = cheminCsv, x = nomX, y = nomY) +
+    labs(title = titreGraph, x = nomX, y = nomY) +
     geom_smooth(method = "lm") +
-      geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
+  #    geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
     theme_light()
+  }else{
+    data.frame( b0 = b0, b1 = b1, sigma_y = sigma_y, D=D, LOB= LOB )
+  }
 }
 
 liste_fichiers <- list.files(".", pattern="csv")
 
 ## Argatroban
-Map(fModele, liste_fichiers[1:3])
+fichiersArgatroban <- c("argatrobanEtalonAvril.csv",
+                        "argatrobanEtalonJanvier.csv",
+                        "argatrobanEtalonOctobre.csv")
+
+LOB_Argatroban <-do.call("rbind", Map(fModele, fichiersArgatroban))
+# les LOB sont trop haut
+
+# Droites de régression:
+
+Map(function (x) fModele(x,retour = "graph"), fichiersArgatroban)
 
 # ca ne marche pas très bien pour dagi et color.
 
