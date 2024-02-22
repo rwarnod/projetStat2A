@@ -101,9 +101,6 @@ Argatroban <-do.call("rbind", Map(fModele, fichiersArgatroban))
 
 Map(function (x) fModele(x,retour = "graph"), fichiersArgatroban)
 
-# ca ne marche pas très bien pour dagi et color.
-
-
 
 #### Calcul des limites de blancs avec des mesures dédiées
 
