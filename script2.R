@@ -20,7 +20,7 @@ fModele <- function(
   ){
   print(cheminCsv)
   #etalonnage <- read.csv2(paste0(cheminCsv, ".csv"), sep = ",")
-  etalonnage <- read.csv2(cheminCsv, sep = ",")
+  etalonnage <- read.csv2(cheminCsv)
   print("Summary :")
   print( summary(etalonnage) )
   modele <- lm(etalonnage[,2]~etalonnage[,1])
@@ -67,8 +67,12 @@ fModele <- function(
 
 liste_fichiers <- list.files(".", pattern="csv")
 
-Map(fModele, liste_fichiers[3:6])
+## Argatroban
+Map(fModele, liste_fichiers[1:3])
+
 # ca ne marche pas très bien pour dagi et color.
+
+
 
 #### Calcul des limites de blancs avec des mesures dédiées
 
@@ -87,7 +91,7 @@ fLOBDedie <- function(blanc,etalonnage,alpha=0.05){
 
 blanc <-read.csv2("blancDabitranChrono.csv")[,1]
 etalonnage <- read.csv2("etalonnage_dagi.csv",sep=",")
-
+write.csv2(etalonnage_03_04_21,"etalonnage_03_04_21.csv",sep=",")
 fLOBDedie(read.csv2("blancDabitranChrono.csv")[,1],
           read.csv2("etalonnage_dagi.csv",sep=",")
           )
