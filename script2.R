@@ -184,22 +184,46 @@ fModeleHetero <- function(
 ){
   etalonnage <- read.csv2(cheminCsv)
   
-  #Modele generalisé
-  model<-glm(etalonnage[,2]~etalonnage[,1], family=gaussian(link="identity"))
-  print(paste0("Regression linéaire de ", nomY," en fonction de ",nomX))
-  print(summary(model))
-  b0 <- coef(model)[1]
-  b1 <- coef(model)[2]
+  # #Modele generalisé
+  # model<-glm(etalonnage[,2]~etalonnage[,1], family=gaussian(link="identity"))
+  # print(paste0("Regression linéaire de ", nomY," en fonction de ",nomX))
+  # print(summary(model))
+  # b0 <- coef(model)[1]
+  # b1 <- coef(model)[2]
+  # sigma_y <- sigma(model)
+  # SX <- sum(etalonnage[,1])
+  # D <- n*sum(etalonnage[,1]^2) - SX^2
+  
+  # Modele y/h(x)
+  
+  # pour les zéros a modifier
+  if (sum(etalonnage[,1]== 0) > 0){
+    etalonnage[,1] <- etalonnage[,1] + 0.01
+  } 
+  y <- etalonnage[,2] / sqrt(etalonnage[,1])
+  x1 <- 1/sqrt(etalonnage[,1])
+  x2 <- sqrt(etalonnage[,1])
+  modeleHet <-lm(y~x1+x2-1) #le -1 est pour ne pas utiliser de constante
+  summary(modeleHet)
+  X <- model.matrix(modeleHet)
+  XTX <- t(X) %*% X
+  D <- det(XTX) #le résultat devrait correspondre à la formule donnée pour D page 6 de la doc.
+  sigma_y <-sigma(modeleHet)
+  b0 <- coef(modeleHet)[1]
+  b1 <- coef(modeleHet)[2]
+  #model <- modeleHet
+  
+  #calcul intermediaire
+  n <- nrow(etalonnage)
+  dll <- n - 2
+  S1surX <- sum(1/(etalonnage[,1])) # comment on fait pour les zeros
+  SX <- sum(etalonnage[,1])
+  b1ab <- abs(b1)
+  
   
   # calcul du LOB à partir de l'étalon
-  n <- nrow(etalonnage)
-  sigma_y <- sigma(model)
-  dll <- n - 2
+
   quantileStudent <- qt(1 - alpha, df = dll)
-  b1ab <- abs(b1)
-  S1surX <- sum(1/(etalonnage[,1] + 0.01)) # comment on fait pour les zeros
-  SX <- sum(etalonnage[,1])
-  D <- n*sum(etalonnage[,1]^2) - SX^2 # a modifier
   A <- quantileStudent * (sigma_y/b1ab)
   LOB <- A * ( 1/S1surX + (n*n)/(S1surX*D) )^0.5
   
@@ -207,7 +231,6 @@ fModeleHetero <- function(
   
   quantileStudent <- qt(1 - alpha, df = dll)
   K <- (quantileStudent*sigma_y/b1)^2
-  S1surX <- sum(1/(etalonnage[,1] + 0.01)) # a modifier
   
   a <- (1 - S1surX*K/D)
   b <- 2*(n*K/D - LOB) - K
