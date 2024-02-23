@@ -72,7 +72,7 @@ fModele <- function(
   D <- n*sum(etalonnage[,1]^2) - SX^2
   
   A <- quantileStudent * (sigma_y/b1ab)
-  LOB <- A * ( (n+1) /n + (SX*SX) /(n*D) )^0.5
+  LOB <- A * ( (n+1)/n + (SX*SX)/(n*D) )^0.5
   
   # On calcul la limite de détection LID 
   
@@ -159,6 +159,10 @@ fichiersArgatroban <- c("argatrobanEtalonAvril.csv",
                         "argatrobanEtalonOctobre.csv")
 
 Argatroban <-do.call("rbind", Map(fModele, fichiersArgatroban))
+
+
+
+
 
 Argatroban <-do.call("rbind", 
                      Map(function (x) fModele(x, precisionRelative = 0.5), 
