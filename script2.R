@@ -282,7 +282,7 @@ ArgatrobanHetero <-do.call("rbind",
 
 
 
-# les LOB sont trop haut
+
 
 # Droites de régression:
 
