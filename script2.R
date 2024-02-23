@@ -10,16 +10,34 @@ library(dplyr)
 library(ggplot2)
 library(lmtest)
 
-#### Calcul des limites de blancs à partir de la droite d'étalonnage
+#### limites de blancs à partir de la droite d'étalonnag
+
+#retourne vecteur:
+  # - b0 et b1 les paramètres de la droite de regression lineaire de col2 
+  #  en fonction de col1
+  # - sigma_y l'écat type de col2
+  # - D = n*sum(etalonnage[,1]^2) - SX^2 
+  #       n = nrow(etalonnage) ; SX = sum(etalonnage[,1])
+  # - limites de blancs à partir de la droite d'étalonnage (LOB)
+  # - limites de detection, solution de l'équation du second degré (LID1 et LID2)
+  # - limites de quantification (LIQ1 et LIQ2)
+  # - limites de quantification relative (LIQR1 et LIQR2)
 
 fModele <- function(
-    cheminCsv, 
+    # chemin des données d'étalonnage x = col1 et y = col2
+    cheminCsv,
+    # C'est de le nom des axes pour la représentation graphique
     nomX = names(etalonnage)[1],
     nomY= names(etalonnage)[2],
+    # c'est le alpha pour les quantiles  de la loi de Student
     alpha = 0.05,
+    # Titre du graphique de la regression
     titreGraph = cheminCsv,
+    # si "graph retourne le graph sinon le vecteur
     retour = "df",
+    # Precision absolue pour le calcul de la limite de quantification
     precision = 10,
+    # Precision relative pour le calcul de la limite de quantification
     precisionRelative = sd(etalonnage[,1])/ mean(etalonnage[,1])
   ){
   print(cheminCsv)
@@ -71,7 +89,7 @@ fModele <- function(
   b <- 2*(n*K*mX/D - LOB)
   c <- LOB^2 - K*(n+1)/n - (n*K*mX^2)/D
   delta <- b^2 - 4*a*c
-  print(paste0("Delta : ", delta))
+  print(paste0("Delta LID: ", delta))
   if (delta<0){
     LID1 <- 0
     LID2 <- 0
@@ -89,6 +107,7 @@ fModele <- function(
   b <- -2*mX*a
   c <- t*((n+1)/n + (n*mX^2)/D) - precision^2
   delta <- b^2 - 4*a*c
+  print(paste0("Delta LIQ: ", delta))
   if (delta<0){
     LIQ1 <- 0
     LIQ2 <- 0
@@ -99,11 +118,12 @@ fModele <- function(
 
   
   # On calcul la limite de quantification relative
-
+  print(paste0("Presicion relative : ", precisionRelative))
   a <- t*n/D - precisionRelative^2
   b <- -2*mX*t*n/D
   c <- t*((n+1)/n + (n*mX^2)/D)
   delta <- b^2 - 4*a*c
+  print(paste0("Delta LIQR: ", delta))
   if (delta < 0 ){
     LIQR1 <- 0
     LIQR2 <- 0
@@ -139,6 +159,11 @@ fichiersArgatroban <- c("argatrobanEtalonAvril.csv",
                         "argatrobanEtalonOctobre.csv")
 
 Argatroban <-do.call("rbind", Map(fModele, fichiersArgatroban))
+
+Argatroban <-do.call("rbind", 
+                     Map(function (x) fModele(x, precisionRelative = 0.5), 
+                         fichiersArgatroban)
+                     )
 # les LOB sont trop haut
 
 # Droites de régression:
@@ -173,9 +198,6 @@ etalonnage <- read.csv2("etalonnage_color.csv",sep=",") %>%
 
 fLOBDedie(read.csv2("blancDabitranColor.csv")[,1],etalonnage)
 
-# il y a un truc qui ne va pas
-
-### Calcul limite de detection
 
 
 
