@@ -18,7 +18,9 @@ fModele <- function(
     nomY= names(etalonnage)[2],
     alpha = 0.05,
     titreGraph = cheminCsv,
-    retour = "df"
+    retour = "df",
+    precision = 10,
+    precisionRelative = sd(etalonnage[,1])/ mean(etalonnage[,1])
   ){
   print(cheminCsv)
   #etalonnage <- read.csv2(paste0(cheminCsv, ".csv"), sep = ",")
@@ -70,8 +72,47 @@ fModele <- function(
   c <- LOB^2 - K*(n+1)/n - (n*K*mX^2)/D
   delta <- b^2 - 4*a*c
   print(paste0("Delta : ", delta))
-  LID1 <- (-b - sqrt(delta)) / (2*a)
-  LID2 <- (-b + sqrt(delta)) / (2*a)
+  if (delta<0){
+    LID1 <- 0
+    LID2 <- 0
+  }else{
+    LID1 <- (-b - sqrt(delta)) / (2*a)
+    LID2 <- (-b + sqrt(delta)) / (2*a)
+  }
+
+  
+  # On calcul la limite de quantification absolue
+  quantileStudent <- qt(1 - alpha/2, df = dll)
+  
+  t <- (quantileStudent*sigma_y/b1)^2
+  a <- t*n/D
+  b <- -2*mX*a
+  c <- t*((n+1)/n + (n*mX^2)/D) - precision^2
+  delta <- b^2 - 4*a*c
+  if (delta<0){
+    LIQ1 <- 0
+    LIQ2 <- 0
+  }else{
+    LIQ1 <- (-b - sqrt(delta)) / (2*a)
+    LIQ2 <- (-b + sqrt(delta)) / (2*a)
+  }
+
+  
+  # On calcul la limite de quantification relative
+
+  a <- t*n/D - precisionRelative^2
+  b <- -2*mX*t*n/D
+  c <- t*((n+1)/n + (n*mX^2)/D)
+  delta <- b^2 - 4*a*c
+  if (delta < 0 ){
+    LIQR1 <- 0
+    LIQR2 <- 0
+  }else{
+    LIQR1 <- (-b - sqrt(delta)) / (2*a)
+    LIQR2 <- (-b + sqrt(delta)) / (2*a)
+  }
+
+  
   
   if (retour == "graph"){
     ggplot(etalonnage) +
@@ -83,7 +124,10 @@ fModele <- function(
   #    geom_smooth(method = "lm", formula = y ~ poly(x, 2), se = T, color = "green") +
     theme_light()
   }else{
-    data.frame( b0 = b0, b1 = b1, sigma_y = sigma_y, D=D, LOB= LOB, LID1 = LID1, LID2 = LID2 )
+    data.frame( b0 = b0, b1 = b1, sigma_y = sigma_y,D=D,
+                LOB= LOB, LID1 = LID1, LID2 = LID2, LIQ1 = LIQ1,
+                LIQ2 = LIQ2, LIQR1 = LIQR1,
+                LIQR2 = LIQR2  )
   }
 }
 
