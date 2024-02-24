@@ -1,0 +1,380 @@
+---
+title: "Dagibatran Chrono"
+author: "Equipe 9"
+date: "2024-02-24"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning = FALSE, echo=FALSE}
+library(dplyr)
+
+```
+
+
+# Dabigatran Chrono :
+
+On commence par charger les données et afficher le nuage de point :
+
+```{r charge_data}
+dagi = read.csv2("data/etalonnage_dagi.csv", sep = ";")
+
+summary(dagi)
+
+plot(x=dagi$Concentration, y=dagi$Temps)
+```
+
+Les points semblent alignés ce qui suggère une relation linéaire nous procédons donc à une régression linéaire :
+
+```{r regression_1}
+modele <- lm(dagi$Temps ~ dagi$Concentration)
+
+summary(modele)
+```
+Les coefficients de la régression sont significatifs au seuil de 1%, le R carré est proche de 1. 
+
+Notons que p-value associée au coefficient correspondant à la pente de droite de régression nous indique que la probabilité que ce coefficient soit négatif est inférieure à 3/1000. Nous considérons cette probabilité comme négligeable ce qui nous permettra de construire nos intervalles de confiances.
+
+Tous les indicateurs semblent confirmer une relation linéaire entre concentration et temps. Ce qui se confirme grapiquement :
+
+```{r regression_2}
+plot(x=dagi$Concentration, y=dagi$Temps)
+abline(modele, col = "red")
+```
+
+Voyons ce que donne une analyse des résidus :
+
+```{r résidus}
+res <- rstudent(modele)
+plot(dagi$Concentration,res,xlab="Concentration", ylab="Résidus studentisés")
+```
+
+Avec seulement quatre points, il est difficile d'analyser ces résidus. Toutefois, on il pourrait apparaître qu'ils soient croissants avec la concentration ce qui pourrait remettre en cause l'hypothèse d'homoscédasticité. Nous y reviendrons plus tard.
+
+## limite de blanc
+### en utilisant des mesures dédiées 
+Commençons par charger et observer les mesures de blanc à notre disposition : 
+```{r blancs}
+blancs <- read.csv2("data/blancDabitranChrono.csv", sep = ";")
+
+plot(x=dagi$Concentration, y=dagi$Temps, ylim = c(27,35), xlim = c(0,50))
+points(0*blancs$Temps, blancs$Temps)
+abline(modele, col = "red")
+
+```
+
+On peut remarquer que la grande majorité des mesures de blanc est située sous la droite de régression, ce qui pourrait laisser envisager que la relation entre temps et concentration n'est pas linéaire au voisinage de 0. Une nouvelle fois avec seulement 4 points pour construire la droite de régression, il est difficile d'être affirmatif.
+
+Testons la normalité de nos mesures de blanc :
+
+```{r normalite_blancs}
+shapiro.test(blancs$Temps)
+```
+On ne rejette pas l'hypothèse de normalité au seuil de 90%, en revanche on la rejetterai au seuil de 95%. Sur le graphique QQplot ci dessous on constate qu'à par les deux premièrs points qui s'écarte significativement, les quantiles empiriques de notre échantillons sont assez proche de ceux d'une loi normale de même moyenne et de même variance. 
+
+```{r blancs_qqplot}
+qqnorm(blancs$Temps )
+qqline(blancs$Temps, col='red')
+```
+
+
+Une première méthode pour calculer la limite de blanc est d'utiliser le quantile empirique. Dans toutes ce document nous considérons un niveau de confiance de 95% pour les calculs de limite.
+
+```{r blanc_empirique}
+(quantile(blancs$Temps, 0.95) - modele$coefficients[1])/modele$coefficients[2]
+
+```
+
+On obtient ici une valeur négative ce qui provient du fait que l'essentiel des mesures de blanc sont situés sous la droite de régression.
+
+Qu'en est-il lorsqu'on se place dans le modèle Gaussien :
+
+```{r blanc_gaussien}
+moyenne_b <- mean(blancs$Temps)
+var_b <- var(blancs$Temps)
+sigma_b <- sqrt(var_b)
+n = 30
+LOB1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modele$coefficients[1])/modele$coefficients[2]
+LOB1
+
+```
+
+On constate que dans le cadre Gaussien la limite de blanc estimée est légèrement positive. Il est à noter que contrairement au quantile empirique, la limite de blanc calculée dans le cadre du modèle Gaussien n'est pas biaisée.
+
+## à partir des données d'étallonnage.
+Voyons ce que donne la limite de blanc calculée à partir des données d'étalonnage :
+
+```{r blanc_etal}
+X <- model.matrix(modele)
+XTX <- t(X) %*% X
+D <- det(XTX)
+somme = sum(dagi$Concentration)
+n <- 4
+LOB2 <-  qt(0.95, n - 2)*sigma(modele)*sqrt(1 + 1/n + somme^2/n/D)/modele$coefficients[2]
+LOB2
+```
+
+Cette limite est très supérieure à celles calculées avec les mesures de blancs dédiées. Ceci s'explique par le fait que d'une part la courbe d'étalonnage est située au dessus de la plupart des mesures de blancs. D'autre part l'écart type résiduel de la régression (environ 0.8) est deux fois plus élevés que l'écart type des mesures de blancs (environ 0.4). 
+
+Lorsqu'on dispose de mesures de blancs, il est préférable de les utiliser pour calculer la limite de blanc. Dans la suite lorsque nous avons besoin d'une limite de blanc nous utiliserons celle calculée avec des mesures dédiés dans le cadre Gaussien.
+
+## limite de détection
+Procédons maintenant au calcul de la limite de détection.
+```{r detection}
+K <- (qt(0.05, n - 2)*sigma(modele)/modele$coefficients[2])^2
+a <- 1 - K*n/D
+b <- -2*(LOB1 -K*somme/D)
+c <- LOB1^2 - K*(1+1/n + somme^2/n/D)
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+
+```
+
+On peut remarquer que la limite de détection ainsi calculée est proche de la limite de blanc calculée avec les données d'étalonnage. Ce n'est pas complètement le fruit du hasard. La Limite de blanc que nous avons utilisé pour calculer la limite de détection est proche de 0. Ainsi, la limite de détection est à peu près égale à la demi longueur d'un intervalle de confiance à 95% de la mesure de la concentration. La longueur de cet intervalle varie certes en fonction de x, mais sa valeur en 0 (qui donne la limite de blanc par données d'étalonnage) reste proche de sa valeur au niveau de la limite de détection.
+
+## limites de quantification
+### précision absolue
+Procédons au calcul des limites de quantifications pour une précision absolue. Nous avons vu que la demi longueur de l'intervalle de confiance est d'environ 23.5 pour une concentration égale à 0. Elle est minimale pour une concentration égale à la moyenne des concentrations d'étalonnage avec une valeur d'environ 20. Nous allons choisir 22 comme précision cible.
+
+```{r précision absolue}
+p <-22
+a <- n/D
+b <- -2*somme/D
+c <- somme^2/n/D + 1 + 1/n - p^2/K
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+La précision souhaitée sera obtenue pour des concentrations comprises entre 94 et 323.
+
+
+### précision relative
+Pour la précision relative nous allons nous fixer une précision de 15%. Si nous cherchons juste à ce que le coefficient de variation soit inférieur à cette valeur nous obtenons.
+```{r prec_rel}
+#limite de quantification relative
+r = 0.15
+Kbis <- (sigma(modele)/modele$coefficients[2])^2
+a <- n/D - r^2/Kbis
+b <- -2*somme/D
+c <- somme^2/n/D + 1 + 1/n
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+La coefficient a étant négatif, la précision voulu sera obtenue à partir d'une concentration de 51.6. Ici nous n'avons pas d'estimation de la confiance associée à cette limite. Si l'on souhaite une précision de 15% avec un niveau de confiance de 95% il faut affiner le calcul : 
+
+```{r prec_rel_2}
+# à 95%
+a <- n/D - r^2/K
+b <- -2*somme/D
+c <- somme^2/n/D + 1 + 1/n
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+La limite ainsi obtenue (143.6) est très sensiblement supérieure à celle obtenue en se basant simplement sur le coefficient de variation.
+
+# hétéroscédasticité 1
+Lors de l'analyse des résidus de la régression linéaire nous avons évoqué le fait que la variance des résidus pourrait être fonction croissante de concentration. Nous avons été conforté dans cette hypothèse par le fait que l'écart type des mesures de blancs était environ deux fois moins élevé que la que l'écart type résiduelle de la régression.
+
+Reprenons l'analyse en faisant l'hypothèse que la variance des résidus est proportionnelle à la concentration :
+
+```{r reg_het}
+#hétéroscedasticité :
+y = dagi$Temps / sqrt(dagi$Concentration)
+x1 = 1/sqrt(dagi$Concentration)
+x2 = sqrt(dagi$Concentration)
+modeleHet <-lm(y~x1+x2-1)
+summary(modeleHet)
+```
+
+Les coefficients obtenus sont sensiblement les mêmes, il restent significatifs au seuil de 1%. Le R carré est encore plus élevé, tout proche de 1.
+
+Voyons ce qu'il en est en terme de résidus :
+
+```{r res_het}
+res <- rstudent(modeleHet)
+plot(dagi$Concentration,res,xlab="Concentration", ylab="Résidus studentisés")
+
+```
+
+Ici rien ne permet d'envisager une dépendance entre concentration et valeur des résidus.
+
+Comment les limites sont-elles impactées par cette nouvelle modélisation ?
+
+## limites de blancs
+### avec mesure dédiés
+Nous nous contenterons du calcul dans le cadre du modèle gaussien :
+
+```{r blanc_het}
+n = 30
+LOB_het1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modeleHet$coefficients[1])/modeleHet$coefficients[2]
+LOB_het1
+```
+
+Sans surprise, les coefficients obtenus par les deux régressions étant similaires, les limites de blanc obtenues à partir de mesures dédiées sont similaires.
+
+### avec données d'étallonage
+```{r blanc_etal_het}
+n <- 4
+somme_inv = sum(1/dagi$Concentration)
+X <- model.matrix(modeleHet)
+XTX <- t(X) %*% X
+D_het <- det(XTX)
+
+K_het = (qt(0.05, n - 2)*sigma(modeleHet)/modeleHet$coefficients[2])^2
+
+LOB_het2 = sqrt(K_het*(1/somme_inv + n^2/D_het/somme_inv))
+LOB_het2
+x = 3
+(sqrt(K_het*(x + 1/somme_inv + (x*somme_inv -n)^2/D_het/somme_inv)))
+```
+
+La limite de blanc ici obtenue est bien inférieure à celle obtenue dans le cas homoscédastique. Cela provient du fait qu'ici on ne prend en compte que l'incertitude sur les coefficient de la régression pour calculer cette limite. L'incertitudes sur les temps associés au mesures de blanc est par hytpothèse nulle contrairement à ce qui était le cas sous l'hypothèse d'homoscédasticité.
+
+## limite de détection.
+```{r det_het}
+a <- 1 - K_het*somme_inv/D_het
+b <- -2*LOB_het1 -K_het*(1 -2*n/D_het)
+c <- LOB_het1^2 - K_het*(1/somme_inv + n^2/somme_inv/D_het)
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+```
+
+On obtient une limite de détection sensiblement inférieure à celle obtenue dans le cas homoscédastique (23.5). Ceci est du au fait que la variance des résidus étant ici supposée proportionnelle aux concentrations, pour des concentrations falbles, elle est bien inférieure à celle calculée dans le cas homoscédastique.
+
+
+## limites de quantification
+### précisioin absolue
+```{r prec_abs_het}
+#limites de 
+#absolu
+p <- 22
+a <- somme_inv/D_het
+b <- 1 -2*n/D_het
+c <- 1/somme_inv + n^2/somme_inv/D_het - p^2 /K_het
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+
+Ici la précision sera atteinte pour des concentrations inférieures à 194. Elle était obtenue pour des concentrations entre 94 et et 323 sous l'hypothèse d'hétéroscédasticité. L'hypothèse d'une variance proportionnelle à la concentration a pour effet d'accroitre la précision obtenue pour les faibles concentrations au détriment de la précision obtenue pour les fortes concentrations.
+
+### précision relative
+```{r prec_rel_het}
+#relative
+r <- 0.15
+a <- somme_inv/D_het -r^2/K_het
+b <- 1 -2*n/D_het
+c <- 1/somme_inv + n^2/somme_inv/D_het
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+
+Le coefficient a étant négatif, la précision de 15% sera obtenue avec un niveau de confiance de 95% pour des concentration supérieures à 103 ce qui est sensiblement inférieur à la valeur obtenue sous l'hypothèse d'homoscédasticité (143).
+
+
+# hétéroscédasticité 2
+L'hypodthèse d'une variances résiduelle proportionnelle à la concentration est en fait peu réaliste. Elle implique notamment que les mesures de blanc soientt d'une précision parfaite, ce qui n'est pas le cas. Plutôt que de considérer la variance proportionnelle à la concentration nous allons considérer qu'elle est constituée d'un terme constant auquel s'ajoute un terme proportionnel à la concentration. En d'autres termes, la variance dépend linéairement de la concentration : v = v0 + v1x.
+Pour estimer v0 nous allons tout simplement utiliser variance des mesures de blancs. Pour estimer v1, nous allons en plus utiliser la variance résiduelle obtenue lors de la régression linéaire sous hypothèse d'homoscédasticité. Nous allons considérer que cette variance est égale à la variance correspondant à une concentration égale à la moyenne des concentrations d'étalonnage.
+
+```{r het2}
+#hetéro linéaire
+v0 = var(blancs$Temps)
+v1 = (sigma(modele)^2 - v0)/somme*n
+y = dagi$Temps / sqrt(v0 +v1*dagi$Concentration)
+x1 = 1/sqrt(v0 + v1 * dagi$Concentration)
+x2 = dagi$Concentration / sqrt(v0 + v1*dagi$Concentration)
+modeleHet <-lm(y~x1+x2-1)
+summary(modeleHet)
+```
+
+Les coefficients obtenus restent très proche de ceux obtenus lors des deux régressions précédentes. Ils sont significatifs au seuil de 1% et le R carré reste très proche de 1. On peut noter que la variance résiduelle est proche de 1 cela montre que notre modèle n'est pas complètement farfelu. Si la variance respectait exactement la formule v = v0 + v1x, avec les v0 et v1 estimée, la variance résiduelle "réelle" serait égale à 1.
+
+Concernant les résidus, rien de remarquable :
+```{r res_het2}
+res <- rstudent(modeleHet)
+plot(dagi$Concentration,res,xlab="Concentration", ylab="Résidus studentisés")
+
+```
+
+Voyons comment évoluent les différentes limites.
+
+## limites de blancs
+### avec mesure dédiés
+Nous nous contenterons du calcul dans le cadre du modèle gaussien :
+
+```{r blanc_het2}
+n = 30
+LOB_het1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modeleHet$coefficients[1])/modeleHet$coefficients[2]
+LOB_het1
+```
+
+Les coefficients de la régressions étant proches de ceux obtenues dans les deux cas précécents, on retrouve une limite de blanc du même ordre de grandeur
+
+## avec données d'étalonnage
+```{r blanc_etal_het2}
+n <- 4
+somme_inv = sum(1/(v0 +v1*dagi$Concentration))
+X <- model.matrix(modeleHet)
+XTX <- t(X) %*% X
+D_het <- det(XTX)
+
+K_het = (qt(0.05, n - 2)*sigma(modeleHet)/modeleHet$coefficients[2])^2
+
+LOB_het = sqrt(K_het*(v0 + 1/somme_inv + n^2/D_het/somme_inv))
+LOB_het
+```
+
+La valeur obtenue est située entre les deux limites obtenues précédemment. Cela provient du fait que la variance pour des concentrations nulles est ici supérieure à 0, mais deux fois plus faible que celle obtenue sous hypothèse d'homoscédaticité.
+
+
+## limite de détection
+```{r det_het2}
+a <- 1 - K_het*somme_inv/D_het
+b <- -2*LOB_het1 -K_het*(v1 -2*n/D_het)
+c <- LOB_het1^2 - K_het*(v0 + 1/somme_inv + n^2/somme_inv/D_het)
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+```
+
+La limite de détection obtenue est là encore située entre les deux limites précédemment calculées. Là encore cela provient d'une valeur intermédiaire en termes de variance.
+
+```{r prec_abs_het2}
+#limites de 
+#absolu
+p <- 22
+a <- somme_inv/D_het
+b <- v1 -2*n/D_het
+c <- v0 + 1/somme_inv + n^2/somme_inv/D_het - p^2 /K_het
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+
+Ici la précision sera atteinte pour des concentrations inférieures à 210 contre 194 sous l'hypothèse de variance proportionnelle à la concentration. Elle était obtenue pour des concentrations entre 94 et et 323 sous l'hypothèse d'hétéroscédasticité. Tout comme sous l'hypothèse d'une variance proportionnelle à la concentration, les meilleures précisions absolues sont obtenues pour les faibles concentrations.
+
+
+```{r prec_rel_het2}
+#relative
+r <- 0.15
+a <- somme_inv/D_het -r^2/K_het
+b <- v1 -2*n/D_het
+c <- v0 + 1/somme_inv + n^2/somme_inv/D_het
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+
+Le coefficient a étant négatif, la précision de 15% sera obtenue avec un niveau de confiance de 95% pour des concentrations supérieures à 116. Cette valeur  est située entre les valeurs obtenues précédemment (103 sous hypothèse de variance proportionnelle à la concentration et 143 sous hypothèse d'homoscédasticité).
+
+
+# Bilan
+Hormis les limites de blanc calculées avec des mesures dédiées, les limites calculées varient très significativement en fonction des hypothèses faites sur le lien entre variance résiduelle et concentration. Le faible nombre de données en notre possession de nous permet de privilégier sérieusement une hypothèse plutôt qu'une autre. Pour décider du calcul de limite le plus adéquat à mettre en place il faudrait disposer de nombreuses mesures effectuées sur l'ensemble des concentrations pour lesquels on veut pouvoir utiliser la courbe d'étalonnage.
+
+
+
