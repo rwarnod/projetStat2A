@@ -104,7 +104,7 @@ LOB1
 
 On constate que dans le cadre Gaussien la limite de blanc estimée est légèrement positive. Il est à noter que contrairement au quantile empirique, la limite de blanc calculée dans le cadre du modèle Gaussien n'est pas biaisée.
 
-## à partir des données d'étallonnage.
+### à partir des données d'étalonnage.
 Voyons ce que donne la limite de blanc calculée à partir des données d'étalonnage :
 
 ```{r blanc_etal}
@@ -217,7 +217,7 @@ LOB_het1
 
 Sans surprise, les coefficients obtenus par les deux régressions étant similaires, les limites de blanc obtenues à partir de mesures dédiées sont similaires.
 
-### avec données d'étallonage
+### avec données d'étalonnage
 ```{r blanc_etal_het}
 n <- 4
 somme_inv = sum(1/dagi$Concentration)
@@ -246,7 +246,7 @@ On obtient une limite de détection sensiblement inférieure à celle obtenue da
 
 
 ## limites de quantification
-### précisioin absolue
+### précision absolue
 ```{r prec_abs_het}
 #limites de 
 #absolu
@@ -342,6 +342,8 @@ delta <- b^2 - 4*a*c
 
 La limite de détection obtenue est là encore située entre les deux limites précédemment calculées. Là encore cela provient d'une valeur intermédiaire en termes de variance.
 
+## limites de quantification
+### précision absolue
 ```{r prec_abs_het2}
 #limites de 
 #absolu
@@ -356,6 +358,7 @@ delta <- b^2 - 4*a*c
 
 Ici la précision sera atteinte pour des concentrations inférieures à 210 contre 194 sous l'hypothèse de variance proportionnelle à la concentration. Elle était obtenue pour des concentrations entre 94 et et 323 sous l'hypothèse d'hétéroscédasticité. Tout comme sous l'hypothèse d'une variance proportionnelle à la concentration, les meilleures précisions absolues sont obtenues pour les faibles concentrations.
 
+### précision relative.
 
 ```{r prec_rel_het2}
 #relative
@@ -370,9 +373,109 @@ delta <- b^2 - 4*a*c
 
 Le coefficient a étant négatif, la précision de 15% sera obtenue avec un niveau de confiance de 90% pour des concentrations supérieures à 116. Cette valeur  est située entre les valeurs obtenues précédemment (103 sous hypothèse de variance proportionnelle à la concentration et 143 sous hypothèse d'homoscédasticité).
 
-
-# Bilan
+# Premier Bilan
 Hormis les limites de blanc calculées avec des mesures dédiées, les limites calculées varient très significativement en fonction des hypothèses faites sur le lien entre variance résiduelle et concentration. Le faible nombre de données en notre possession de nous permet de privilégier sérieusement une hypothèse plutôt qu'une autre. Pour décider du calcul de limites le plus adéquat à mettre en place il faudrait disposer de nombreuses mesures effectuées sur la plage de concentration pour laquelle on veut pouvoir utiliser la courbe d'étalonnage.
 
+
+# Etalonnage avec mesures de blancs
+Jusqu'à maintenant nous avons d'une part construit une droite d'étalonnage sans aucune mesure de blanc, puis utilisé des mesures de blancs pour la construction de limites de blanc et de détection. Nous allons maintenant intégrer les mesures de blancs dans la construction de la courbe d'étalonnage
+```{r etal_blancs}
+dagic = rbind(data.frame(Concentration = dagi$Concentration, Temps = dagi$Temps), data.frame(rename(0*blancs, Concentration=Temps), blancs))
+modelecomplet <- lm(dagic$Temps ~ dagic$Concentration)
+
+summary(modelecomplet)
+
+```
+
+On peut noter que les coefficients restent significatif au seuil de 1%. Leur p-value est encore plus faible que dans les précédentes régressions effecutées. L'augmentation du nombre de mesures utilisées a mécaniquement diminué la variance des estimateurs des coefficients de la régression. En revanche, le R-carré ajusté, bien que très proche de 1 est un peu moins élevé que pour les régressions précédentes. On peut noter que la valeur de la constante est plus faible que précédemment et se rapproche de la valeur moyenne des blancs (28,43) et que la pente de la droite de régression a légèrement augmenté. L'écart type résiduelle quand à lui a presque été divisée par deux et s'approche de la valeur de l'écart type des blancs (0,42)
+
+
+Voyons ce que donne une analyse des résidus :
+
+```{r résidus_comp}
+res <- rstudent(modelecomplet)
+plot(dagic$Concentration,res,xlab="Concentration", ylab="Résidus studentisés")
+```
+Une nouvelle fois, l'analyse des résidus est délicate, mais elle pourrait laisser entrevoir que la variance résiduelle soit une fonction croissante de la concentration.
+
+## limite de blanc
+### avec mesures dédiées :
+Nous allons nous contenter de calculer la limite de blanc dans le cadre gaussien. Il est à noter qu'ici la courbe d'étalonnage dépend des mesures de blancs. Les mesures de blancs ne sont donc pas à proprement parle dédiées au calcul de la limite de blanc. On ne peut donc pas utiliser la courbe d'étalonnage pour transformer un quantile de mesure physique en quantile de mesure de blanc sans précaution. Cela nécessite de négliger le probalilité que l'estimation de a pente de la courbe soit négative. Probabilité qui est inférieure à $10^{-16}$ d'après le résultat de la régression linéaire.
+
+```{r blanc_gaussien_comp}
+moyenne_b <- mean(blancs$Temps)
+var_b <- var(blancs$Temps)
+sigma_b <- sqrt(var_b)
+n = 30
+LOB1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modelecomplet$coefficients[1])/modelecomplet$coefficients[2]
+LOB1
+
+```
+
+On constate que la limite de blanc est ici sensiblement supérieure à celles estimées précédemment avec des mesures dédiées. Cela provient essentiellement de la baisse du l'estimation de la constante dans la régression linéaire.
+
+### à partir des données d'étalonnage.
+Voyons ce que donne la limite de blanc calculée à partir des données ayant servi à construire la courbe d'étalonnage:
+
+```{r blanc_etal_comp}
+X <- model.matrix(modelecomplet)
+XTX <- t(X) %*% X
+D <- det(XTX)
+somme = sum(dagic$Concentration)
+n <- 34
+LOB2 <-  qt(0.95, n - 2)*sigma(modelecomplet)*sqrt(1 + 1/n + somme^2/n/D)/modelecomplet$coefficients[2]
+LOB2
+```
+La valeur de la limite de blanc calculéé ici est très proche de celles calculées à partir des mesures de blancs. Cela provient du fait que la valeur de la constante estimée par la régression est proche de la moyenne des blancs et du fait que la variance résiduelle de la régression est proche de la variance des mesures de blancs.
+
+## limite de détection
+Procédons maintenant au calcul de la limite de détection.
+```{r detection_comp}
+K <- (qt(0.05, n - 2)*sigma(modelecomplet)/modelecomplet$coefficients[2])^2
+a <- 1 - K*n/D
+b <- -2*(LOB1 -K*somme/D)
+c <- LOB1^2 - K*(1+1/n + somme^2/n/D)
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+
+```
+Il est difficile de comparer la limite de détection obtenue ici avec la limite de détection calculées précédemment dans le cadre homoscédastique car les limites de blancs qui servent de base à ce calcul sont sensiblement différentes. On peut toutefois noter que l'écart entre limite de blanc et limite de détection à considérablement diminué, passant de plus de 20 à moins de 6. Ceci est essentiellement du à la baisse de la variance résiduelle et de la variance des estimateurs de des coefficients de la régression constatées lorsqu'on intègre les mesures de blancs au calcul de la droite d'étalonnage.
+
+## limites de quantification :
+### précision absolue :
+Procédons au calcul des limites de quantification pour une précision absolue de 22 avec un seuil de 90%
+
+```{r précision absolue comp}
+p <-22
+a <- n/D
+b <- -2*somme/D
+c <- somme^2/n/D + 1 + 1/n - p^2/K
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+
+La plage de concentration permettant d'obtenir la précision voulue est passée de [94, 323] à [0, 1775]. A nouveau cela est essentiellement du à la baisse de la variance résiduelle et des variances des estimateurs des coefficients de la régression.
+
+
+
+### précision relative :
+Pour la précision relative nous allons nous fixer une précision de 15% et un niveau de confiance de 90%.
+
+```{r prec_rel_com}
+# à 90%
+a <- n/D - r^2/K
+b <- -2*somme/D
+c <- somme^2/n/D + 1 + 1/n
+delta <- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a
+(-b - sqrt(delta))/2/a
+```
+La précision relative voulue sera obtenue pour des concentrations supérieures à 44.
+La limite ainsi obtenue est très sensiblement inférieure à celle sous l'hypothèse d'homoscédasticité sans utilisé les mesures de blancs pour la construction de la courbe d'étalonnage (144). Une nouvelle fois de plus, c'est la baisse de de la variance résiduelle et la baisse de la variance des coefficients de la régression qui sont les causes principales de cet écart.
+
+
+# Deuxième Bilan
+Il semblerait que le fait d'utiliser les mesures de blancs pour construire la courbe d'étalonage permette d'améliorer la précision des mesures. Mais ce résultat est à prendre avec du recul. Il est obtenu sous une hypothèse contestable d'homoscédasticité. Sous cette hypothèse la présence de nombreuses mesures de blanc peut avoir pour effet de diminuer artificiellement la variance résiduelle. D'autre part le fait d'augmenter le nombre de mesures utilisés pour construire la droite d'étalonnage réduit mécaniquement la variance des coefficients calculées. Ce n'est pas pour autant l'assurance d'une amélioration de la qualité de l'ajustement linéaire. Il serait préférable d'augmenter le nombre de mesure en les répartissants sur l'ensemble de la plage de concentration que l'on souhaite pouvoir mesurer.
 
 

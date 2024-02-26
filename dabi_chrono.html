@@ -475,9 +475,8 @@ légèrement positive. Il est à noter que contrairement au quantile
 empirique, la limite de blanc calculée dans le cadre du modèle Gaussien
 n’est pas biaisée.</p>
 </div>
-</div>
-<div id="à-partir-des-données-détallonnage." class="section level2">
-<h2>à partir des données d’étallonnage.</h2>
+<div id="à-partir-des-données-détalonnage." class="section level3">
+<h3>à partir des données d’étalonnage.</h3>
 <p>Voyons ce que donne la limite de blanc calculée à partir des données
 d’étalonnage :</p>
 <pre class="r"><code>X &lt;- model.matrix(modele)
@@ -499,6 +498,7 @@ deux fois plus élevé que l’écart type des mesures de blancs (environ
 utiliser pour calculer la limite de blanc. Dans la suite lorsque nous
 avons besoin d’une limite de blanc nous utiliserons celle calculée avec
 des mesures dédiés dans le cadre Gaussien.</p>
+</div>
 </div>
 <div id="limite-de-détection" class="section level2">
 <h2>limite de détection</h2>
@@ -644,8 +644,8 @@ LOB_het1</code></pre>
 étant similaires, les limites de blanc obtenues à partir de mesures
 dédiées sont similaires.</p>
 </div>
-<div id="avec-données-détallonage" class="section level3">
-<h3>avec données d’étallonage</h3>
+<div id="avec-données-détalonnage" class="section level3">
+<h3>avec données d’étalonnage</h3>
 <pre class="r"><code>n &lt;- 4
 somme_inv = sum(1/dagi$Concentration)
 X &lt;- model.matrix(modeleHet)
@@ -683,8 +683,8 @@ inférieure à celle calculée dans le cas homoscédastique.</p>
 </div>
 <div id="limites-de-quantification-1" class="section level2">
 <h2>limites de quantification</h2>
-<div id="précisioin-absolue" class="section level3">
-<h3>précisioin absolue</h3>
+<div id="précision-absolue-1" class="section level3">
+<h3>précision absolue</h3>
 <pre class="r"><code>#limites de 
 #absolu
 p &lt;- 22
@@ -795,7 +795,7 @@ dans les deux cas précécents, on retrouve une limite de blanc du même
 ordre de grandeur</p>
 </div>
 </div>
-<div id="avec-données-détalonnage" class="section level2">
+<div id="avec-données-détalonnage-1" class="section level2">
 <h2>avec données d’étalonnage</h2>
 <pre class="r"><code>n &lt;- 4
 somme_inv = sum(1/(v0 +v1*dagi$Concentration))
@@ -826,6 +826,11 @@ delta &lt;- b^2 - 4*a*c
 <p>La limite de détection obtenue est là encore située entre les deux
 limites précédemment calculées. Là encore cela provient d’une valeur
 intermédiaire en termes de variance.</p>
+</div>
+<div id="limites-de-quantification-2" class="section level2">
+<h2>limites de quantification</h2>
+<div id="précision-absolue-2" class="section level3">
+<h3>précision absolue</h3>
 <pre class="r"><code>#limites de 
 #absolu
 p &lt;- 22
@@ -845,6 +850,9 @@ concentration. Elle était obtenue pour des concentrations entre 94 et et
 323 sous l’hypothèse d’hétéroscédasticité. Tout comme sous l’hypothèse
 d’une variance proportionnelle à la concentration, les meilleures
 précisions absolues sont obtenues pour les faibles concentrations.</p>
+</div>
+<div id="précision-relative." class="section level3">
+<h3>précision relative.</h3>
 <pre class="r"><code>#relative
 r &lt;- 0.15
 a &lt;- somme_inv/D_het -r^2/K_het
@@ -864,8 +872,9 @@ sous hypothèse de variance proportionnelle à la concentration et 143
 sous hypothèse d’homoscédasticité).</p>
 </div>
 </div>
-<div id="bilan" class="section level1">
-<h1>Bilan</h1>
+</div>
+<div id="premier-bilan" class="section level1">
+<h1>Premier Bilan</h1>
 <p>Hormis les limites de blanc calculées avec des mesures dédiées, les
 limites calculées varient très significativement en fonction des
 hypothèses faites sur le lien entre variance résiduelle et
@@ -875,6 +884,182 @@ Pour décider du calcul de limites le plus adéquat à mettre en place il
 faudrait disposer de nombreuses mesures effectuées sur la plage de
 concentration pour laquelle on veut pouvoir utiliser la courbe
 d’étalonnage.</p>
+</div>
+<div id="etalonnage-avec-mesures-de-blancs" class="section level1">
+<h1>Etalonnage avec mesures de blancs</h1>
+<p>Jusqu’à maintenant nous avons d’une part construit une droite
+d’étalonnage sans aucune mesure de blanc, puis utilisé des mesures de
+blancs pour la construction de limites de blanc et de détection. Nous
+allons maintenant intégrer les mesures de blancs dans la construction de
+la courbe d’étalonnage</p>
+<pre class="r"><code>dagic = rbind(data.frame(Concentration = dagi$Concentration, Temps = dagi$Temps), data.frame(rename(0*blancs, Concentration=Temps), blancs))
+modelecomplet &lt;- lm(dagic$Temps ~ dagic$Concentration)
+
+summary(modelecomplet)</code></pre>
+<pre><code>## 
+## Call:
+## lm(formula = dagic$Temps ~ dagic$Concentration)
+## 
+## Residuals:
+##      Min       1Q   Median       3Q      Max 
+## -1.27249 -0.19749  0.02751  0.22751  1.16073 
+## 
+## Coefficients:
+##                      Estimate Std. Error t value Pr(&gt;|t|)    
+## (Intercept)         2.847e+01  8.843e-02   322.0   &lt;2e-16 ***
+## dagic$Concentration 1.260e-01  8.653e-04   145.6   &lt;2e-16 ***
+## ---
+## Signif. codes:  0 &#39;***&#39; 0.001 &#39;**&#39; 0.01 &#39;*&#39; 0.05 &#39;.&#39; 0.1 &#39; &#39; 1
+## 
+## Residual standard error: 0.4837 on 30 degrees of freedom
+## Multiple R-squared:  0.9986, Adjusted R-squared:  0.9985 
+## F-statistic: 2.12e+04 on 1 and 30 DF,  p-value: &lt; 2.2e-16</code></pre>
+<p>On peut noter que les coefficients restent significatif au seuil de
+1%. Leur p-value est encore plus faible que dans les précédentes
+régressions effecutées. L’augmentation du nombre de mesures utilisées a
+mécaniquement diminué la variance des estimateurs des coefficients de la
+régression. En revanche, le R-carré ajusté, bien que très proche de 1
+est un peu moins élevé que pour les régressions précédentes. On peut
+noter que la valeur de la constante est plus faible que précédemment et
+se rapproche de la valeur moyenne des blancs (28,43) et que la pente de
+la droite de régression a légèrement augmenté. L’écart type résiduelle
+quand à lui a presque été divisée par deux et s’approche de la valeur de
+l’écart type des blancs (0,42)</p>
+<p>Voyons ce que donne une analyse des résidus :</p>
+<pre class="r"><code>res &lt;- rstudent(modelecomplet)
+plot(dagic$Concentration,res,xlab=&quot;Concentration&quot;, ylab=&quot;Résidus studentisés&quot;)</code></pre>
+<p><img src="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAABUAAAAPACAMAAADDuCPrAAAA21BMVEUAAAAAADoAAGYAOjoAOmYAOpAAZrY6AAA6OgA6Ojo6OmY6OpA6ZmY6ZpA6ZrY6kLY6kNtmAABmADpmOgBmOjpmOmZmZjpmZmZmZpBmkLZmkNtmtttmtv+QOgCQOjqQZgCQZjqQZmaQkDqQkGaQkJCQkLaQtraQttuQtv+Q2/+2ZgC2Zjq2kDq2kGa2kLa2tpC2tra2ttu225C227a229u22/+2///bkDrbkGbbtmbbtpDbtrbb25Db27bb29vb2//b/7bb////tmb/25D/27b/29v//7b//9v///+zPtzRAAAACXBIWXMAAB2HAAAdhwGP5fFlAAAgAElEQVR4nO3df2PTVp7oYYUGUpiBhYYdygIzzN3dsg1lJ70LzUBv6Sakcd7/K7rWDzt2bIz8zbGkI57njzZJlUQnpB9k6eiouAQgpOh7BwByJaAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIKECSgAEECChAkoABBAgoQJKAAQQIK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" width="672" />
+Une nouvelle fois, l’analyse des résidus est délicate, mais elle
+pourrait laisser entrevoir que la variance résiduelle soit une fonction
+croissante de la concentration.</p>
+<div id="limite-de-blanc-1" class="section level2">
+<h2>limite de blanc</h2>
+<div id="avec-mesures-dédiées-2" class="section level3">
+<h3>avec mesures dédiées :</h3>
+<p>Nous allons nous contenter de calculer la limite de blanc dans le
+cadre gaussien. Il est à noter qu’ici la courbe d’étalonnage dépend des
+mesures de blancs. Les mesures de blancs ne sont donc pas à proprement
+parle dédiées au calcul de la limite de blanc. On ne peut donc pas
+utiliser la courbe d’étalonnage pour transformer un quantile de mesure
+physique en quantile de mesure de blanc sans précaution. Cela nécessite
+de négliger le probalilité que l’estimation de a pente de la courbe soit
+négative. Probabilité qui est inférieure à <span class="math inline">\(10^{-16}\)</span> d’après le résultat de la
+régression linéaire.</p>
+<pre class="r"><code>moyenne_b &lt;- mean(blancs$Temps)
+var_b &lt;- var(blancs$Temps)
+sigma_b &lt;- sqrt(var_b)
+n = 30
+LOB1 &lt;- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modelecomplet$coefficients[1])/modelecomplet$coefficients[2]
+LOB1</code></pre>
+<pre><code>## (Intercept) 
+##    5.465728</code></pre>
+<p>On constate que la limite de blanc est ici sensiblement supérieure à
+celles estimées précédemment avec des mesures dédiées. Cela provient
+essentiellement de la baisse du l’estimation de la constante dans la
+régression linéaire.</p>
+</div>
+<div id="à-partir-des-données-détalonnage.-1" class="section level3">
+<h3>à partir des données d’étalonnage.</h3>
+<p>Voyons ce que donne la limite de blanc calculée à partir des données
+ayant servi à construire la courbe d’étalonnage:</p>
+<pre class="r"><code>X &lt;- model.matrix(modelecomplet)
+XTX &lt;- t(X) %*% X
+D &lt;- det(XTX)
+somme = sum(dagic$Concentration)
+n &lt;- 34
+LOB2 &lt;-  qt(0.95, n - 2)*sigma(modelecomplet)*sqrt(1 + 1/n + somme^2/n/D)/modelecomplet$coefficients[2]
+LOB2</code></pre>
+<pre><code>## dagic$Concentration 
+##            6.604408</code></pre>
+<p>La valeur de la limite de blanc calculéé ici est très proche de
+celles calculées à partir des mesures de blancs. Cela provient du fait
+que la valeur de la constante estimée par la régression est proche de la
+moyenne des blancs et du fait que la variance résiduelle de la
+régression est proche de la variance des mesures de blancs.</p>
+</div>
+</div>
+<div id="limite-de-détection-2" class="section level2">
+<h2>limite de détection</h2>
+<p>Procédons maintenant au calcul de la limite de détection.</p>
+<pre class="r"><code>K &lt;- (qt(0.05, n - 2)*sigma(modelecomplet)/modelecomplet$coefficients[2])^2
+a &lt;- 1 - K*n/D
+b &lt;- -2*(LOB1 -K*somme/D)
+c &lt;- LOB1^2 - K*(1+1/n + somme^2/n/D)
+delta &lt;- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a</code></pre>
+<pre><code>## (Intercept) 
+##    12.06528</code></pre>
+<p>Il est difficile de comparer la limite de détection obtenue ici avec
+la limite de détection calculées précédemment dans le cadre
+homoscédastique car les limites de blancs qui servent de base à ce
+calcul sont sensiblement différentes. On peut toutefois noter que
+l’écart entre limite de blanc et limite de détection à considérablement
+diminué, passant de plus de 20 à moins de 6. Ceci est essentiellement du
+à la baisse de la variance résiduelle et de la variance des estimateurs
+de des coefficients de la régression constatées lorsqu’on intègre les
+mesures de blancs au calcul de la droite d’étalonnage.</p>
+</div>
+<div id="limites-de-quantification-3" class="section level2">
+<h2>limites de quantification :</h2>
+<div id="précision-absolue-3" class="section level3">
+<h3>précision absolue :</h3>
+<p>Procédons au calcul des limites de quantification pour une précision
+absolue de 22 avec un seuil de 90%</p>
+<pre class="r"><code>p &lt;-22
+a &lt;- n/D
+b &lt;- -2*somme/D
+c &lt;- somme^2/n/D + 1 + 1/n - p^2/K
+delta &lt;- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a</code></pre>
+<pre><code>## dagic$Concentration 
+##            1774.756</code></pre>
+<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
+<pre><code>## dagic$Concentration 
+##           -1725.697</code></pre>
+<p>La plage de concentration permettant d’obtenir la précision voulue
+est passée de [94, 323] à [0, 1775]. A nouveau cela est essentiellement
+du à la baisse de la variance résiduelle et des variances des
+estimateurs des coefficients de la régression.</p>
+</div>
+<div id="précision-relative-2" class="section level3">
+<h3>précision relative :</h3>
+<p>Pour la précision relative nous allons nous fixer une précision de
+15% et un niveau de confiance de 90%.</p>
+<pre class="r"><code># à 90%
+a &lt;- n/D - r^2/K
+b &lt;- -2*somme/D
+c &lt;- somme^2/n/D + 1 + 1/n
+delta &lt;- b^2 - 4*a*c
+(-b + sqrt(delta))/2/a</code></pre>
+<pre><code>## dagic$Concentration 
+##            -44.3288</code></pre>
+<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
+<pre><code>## dagic$Concentration 
+##            44.01327</code></pre>
+<p>La précision relative voulue sera obtenue pour des concentrations
+supérieures à 44. La limite ainsi obtenue est très sensiblement
+inférieure à celle sous l’hypothèse d’homoscédasticité sans utilisé les
+mesures de blancs pour la construction de la courbe d’étalonnage (144).
+Une nouvelle fois de plus, c’est la baisse de de la variance résiduelle
+et la baisse de la variance des coefficients de la régression qui sont
+les causes principales de cet écart.</p>
+</div>
+</div>
+</div>
+<div id="deuxième-bilan" class="section level1">
+<h1>Deuxième Bilan</h1>
+<p>Il semblerait que le fait d’utiliser les mesures de blancs pour
+construire la courbe d’étalonage permette d’améliorer la précision des
+mesures. Mais ce résultat est à prendre avec du recul. Il est obtenu
+sous une hypothèse contestable d’homoscédasticité. Sous cette hypothèse
+la présence de nombreuses mesures de blanc peut avoir pour effet de
+diminuer artificiellement la variance résiduelle. D’autre part le fait
+d’augmenter le nombre de mesures utilisés pour construire la droite
+d’étalonnage réduit mécaniquement la variance des coefficients
+calculées. Ce n’est pas pour autant l’assurance d’une amélioration de la
+qualité de l’ajustement linéaire. Il serait préférable d’augmenter le
+nombre de mesure en les répartissants sur l’ensemble de la plage de
+concentration que l’on souhaite pouvoir mesurer.</p>
 </div>
 
 
