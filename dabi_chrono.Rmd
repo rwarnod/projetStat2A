@@ -191,6 +191,50 @@ c(LOQ1,LOQ2)
 ```
 La limite ainsi obtenue (143.6) est très sensiblement supérieure à celle obtenue en se basant simplement sur le coefficient de variation.
 
+## qualité des intervalles de confiance.
+Pour construire nos intervalles de confiance nous avons négligé la probabilité que la pente de la droite de régressioin puisse prendre des valeurs négatives. Cela nous a permis de considérer qu'approximativement : $\frac{\hat{x}-x} {\frac{\sigma}{|\hat{\beta_{1}}|} \sqrt{1 + \frac{1}{n} + \frac{(nx - \sum_{i=1}^n x_i)^2}{nD} }} \sim \mathcal{N}(0,1)$. Nous allons vérifier à l'aide de simulations que cette approximation est justifiée pour x=0 et x=500 (valeurs minimale et maximale de la plage de concentration qui nous intéresse). Pour notre simulation nous utilisons les coefficients et variances estimées par la régression linéaire. Nous simulons 1 000 000 de réalisations indépendantes de $\frac{\hat{x}-x} {\frac{\sigma}{|\hat{\beta_{1}}|} \sqrt{1 + \frac{1}{n} + \frac{(nx - \sum_{i=1}^n x_i)^2}{nD} }}$ puis nous estimons à partir de ces simulations une liste de quantiles empiriques.
+```{r check_ic}
+simule_quantile <- function(x, modele, liste_quantiles ){
+  set.seed(1234)
+  X <- model.matrix(modele)
+  XTX <- t(X) %*% X
+  D <- det(XTX)
+  somme = sum(X[,2])
+  n < nrow(X)
+  
+  varbeta = sigma(modele)^2*solve(XTX)
+  
+  b0 = modele$coefficients[1]
+  b1 = modele$coefficients[2]
+  nb = 1000000 # nombre de simulation
+  e1 = rnorm(nb)
+  e2 = rnorm(nb)
+  e3 = rnorm(nb)
+  epsi = sigma(modele)*e1
+  C = chol(varbeta) #décomposition de cholesky  pour simulation des coefficients
+  b = cbind(e2,e3)%*%C
+  b0_hat = b[,1] + b0
+  b1_hat = b[,2] + b1
+  
+  x_hat = (b0 + b1*x + epsi - b0_hat)/b1_hat
+  
+  ma_stat  = abs(b1_hat)*(x_hat-x)/(sigma(modele)*sqrt(1 + 1/n + (n*x-somme)^2/n/D))
+
+  return( quantile(ma_stat, liste_quantiles))
+  
+}
+liste_quantiles <-c(0.001, 0.01, 0.025, 0.05, 0.1, 0.3, 0.5, 0.7,  0.9, 0.95, 0.975, 0.99, 0.999)
+q0 <- simule_quantile(0, modele, liste_quantiles)
+q500 <- simule_quantile(500, modele, liste_quantiles)
+qnormal <- qnorm(liste_quantiles)
+
+res = t(rbind(qnormal,q0, q0-qnormal, q500, q500-qnormal))
+colnames(res) <- c("qnormal", "q0", "q0-qnormal", "q500", "q500-qnormal")
+round(res, 5)
+```
+
+Nous constatons que les quantiles issues des simulations s'écartent de moins de 0,01 des quantiles réels d'une loi normale centrée réduite. L'approximation est donc tout à fait acceptable.
+
 # hétéroscédasticité 1
 Lors de l'analyse des résidus de la régression linéaire nous avons évoqué le fait que la variance des résidus pourrait être fonction croissante de concentration. Nous avons été conforté dans cette hypothèse par le fait que l'écart type des mesures de blancs était environ deux fois moins élevé que la que l'écart type résiduelle de la régression.
 
