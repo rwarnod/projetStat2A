@@ -84,7 +84,9 @@ qqline(blancs$Temps, col='red')
 Une première méthode pour calculer la limite de blanc est d'utiliser le quantile empirique. Dans toutes ce document nous considérons un niveau de confiance de 95% pour les calculs de limite de blanc et de détection et un niveau de confiance de 90% pour les limites de quantification.
 
 ```{r blanc_empirique}
-(quantile(blancs$Temps, 0.95) - modele$coefficients[1])/modele$coefficients[2]
+LOB<-(quantile(blancs$Temps, 0.95) - modele$coefficients[1])/modele$coefficients[2]
+names(LOB) <- c("LOB")
+LOB
 
 ```
 
@@ -98,8 +100,8 @@ var_b <- var(blancs$Temps)
 sigma_b <- sqrt(var_b)
 n = 30
 LOB1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modele$coefficients[1])/modele$coefficients[2]
+names(LOB1) <- c("LOB")
 LOB1
-
 ```
 
 On constate que dans le cadre Gaussien la limite de blanc estimée est légèrement positive. Il est à noter que contrairement au quantile empirique, la limite de blanc calculée dans le cadre du modèle Gaussien n'est pas biaisée.
@@ -114,6 +116,7 @@ D <- det(XTX)
 somme = sum(dagi$Concentration)
 n <- 4
 LOB2 <-  qt(0.95, n - 2)*sigma(modele)*sqrt(1 + 1/n + somme^2/n/D)/modele$coefficients[2]
+names(LOB2) <- c("LOB")
 LOB2
 ```
 
@@ -129,8 +132,9 @@ a <- 1 - K*n/D
 b <- -2*(LOB1 -K*somme/D)
 c <- LOB1^2 - K*(1+1/n + somme^2/n/D)
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-
+LOD <- (-b + sqrt(delta))/2/a
+names(LOD) <- c("LOD")
+LOD
 ```
 
 On peut remarquer que la limite de détection ainsi calculée est proche de la limite de blanc calculée avec les données d'étalonnage. Ce n'est pas complètement le fruit du hasard. La Limite de blanc que nous avons utilisé pour calculer la limite de détection est proche de 0. Ainsi, la limite de détection est à peu près égale à la demi longueur d'un intervalle de confiance à 90% de la mesure de la concentration. La longueur de cet intervalle varie certes en fonction de x, mais sa valeur en 0 (qui donne la limite de blanc par données d'étalonnage) reste proche de sa valeur au niveau de la limite de détection.
@@ -145,8 +149,12 @@ a <- n/D
 b <- -2*somme/D
 c <- somme^2/n/D + 1 + 1/n - p^2/K
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ1 <- (-b - sqrt(delta))/2/a
+LOQ2 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
+
 ```
 La précision souhaitée sera obtenue pour des concentrations comprises entre 94 et 323.
 
@@ -161,8 +169,11 @@ a <- n/D - r^2/Kbis
 b <- -2*somme/D
 c <- somme^2/n/D + 1 + 1/n
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ2 <- (-b - sqrt(delta))/2/a
+LOQ1 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 La coefficient a étant négatif, la précision voulue sera obtenue à partir d'une concentration de 51.6. Ici nous n'avons pas d'estimation de la confiance associée à cette limite. Si l'on souhaite une précision de 15% avec un niveau de confiance de 90% il faut affiner le calcul : 
 
@@ -172,8 +183,11 @@ a <- n/D - r^2/K
 b <- -2*somme/D
 c <- somme^2/n/D + 1 + 1/n
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ2 <- (-b - sqrt(delta))/2/a
+LOQ1 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 La limite ainsi obtenue (143.6) est très sensiblement supérieure à celle obtenue en se basant simplement sur le coefficient de variation.
 
@@ -212,6 +226,7 @@ Nous nous contenterons du calcul dans le cadre du modèle gaussien :
 ```{r blanc_het}
 n = 30
 LOB_het1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modeleHet$coefficients[1])/modeleHet$coefficients[2]
+names(LOB_het1) <- "LOB"
 LOB_het1
 ```
 
@@ -228,6 +243,7 @@ D_het <- det(XTX)
 K_het = (qt(0.05, n - 2)*sigma(modeleHet)/modeleHet$coefficients[2])^2
 
 LOB_het2 = sqrt(K_het*(1/somme_inv + n^2/D_het/somme_inv))
+names(LOB_het2) <- "LOB"
 LOB_het2
 ```
 
@@ -239,7 +255,9 @@ a <- 1 - K_het*somme_inv/D_het
 b <- -2*LOB_het1 -K_het*(1 -2*n/D_het)
 c <- LOB_het1^2 - K_het*(1/somme_inv + n^2/somme_inv/D_het)
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
+LOD <-(-b + sqrt(delta))/2/a
+names(LOD) <- "LOD"
+LOD
 ```
 
 On obtient une limite de détection sensiblement inférieure à celle obtenue dans le cas homoscédastique (23.5). Ceci est du au fait que la variance des résidus étant ici supposée proportionnelle aux concentrations, pour des concentrations falbles, elle est bien inférieure à celle calculée dans le cas homoscédastique.
@@ -255,8 +273,11 @@ a <- somme_inv/D_het
 b <- 1 -2*n/D_het
 c <- 1/somme_inv + n^2/somme_inv/D_het - p^2 /K_het
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ1 <- (-b - sqrt(delta))/2/a
+LOQ2 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 
 Ici la précision sera atteinte pour des concentrations inférieures à 194. Elle était obtenue pour des concentrations entre 94 et et 323 sous l'hypothèse d'hétéroscédasticité. L'hypothèse d'une variance proportionnelle à la concentration a pour effet d'accroitre la précision obtenue pour les faibles concentrations au détriment de la précision obtenue pour les fortes concentrations.
@@ -269,8 +290,11 @@ a <- somme_inv/D_het -r^2/K_het
 b <- 1 -2*n/D_het
 c <- 1/somme_inv + n^2/somme_inv/D_het
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ2 <- (-b - sqrt(delta))/2/a
+LOQ1 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 
 Le coefficient a étant négatif, la précision de 15% sera obtenue avec un niveau de confiance de 90% pour des concentrations supérieures à 103, ce qui est sensiblement inférieur à la valeur obtenue sous l'hypothèse d'homoscédasticité (143).
@@ -309,6 +333,7 @@ Nous nous contenterons du calcul dans le cadre du modèle gaussien :
 ```{r blanc_het2}
 n = 30
 LOB_het1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modeleHet$coefficients[1])/modeleHet$coefficients[2]
+names(LOB_het1) <- "LOB"
 LOB_het1
 ```
 
@@ -325,6 +350,7 @@ D_het <- det(XTX)
 K_het = (qt(0.05, n - 2)*sigma(modeleHet)/modeleHet$coefficients[2])^2
 
 LOB_het = sqrt(K_het*(v0 + 1/somme_inv + n^2/D_het/somme_inv))
+names(LOB_het) <- "LOB"
 LOB_het
 ```
 
@@ -337,7 +363,9 @@ a <- 1 - K_het*somme_inv/D_het
 b <- -2*LOB_het1 -K_het*(v1 -2*n/D_het)
 c <- LOB_het1^2 - K_het*(v0 + 1/somme_inv + n^2/somme_inv/D_het)
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
+LOD <- (-b + sqrt(delta))/2/a
+names(LOD) <- "LOD"
+LOD
 ```
 
 La limite de détection obtenue est là encore située entre les deux limites précédemment calculées. Là encore cela provient d'une valeur intermédiaire en termes de variance.
@@ -352,8 +380,11 @@ a <- somme_inv/D_het
 b <- v1 -2*n/D_het
 c <- v0 + 1/somme_inv + n^2/somme_inv/D_het - p^2 /K_het
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ1 <- (-b - sqrt(delta))/2/a
+LOQ2 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 
 Ici la précision sera atteinte pour des concentrations inférieures à 210 contre 194 sous l'hypothèse de variance proportionnelle à la concentration. Elle était obtenue pour des concentrations entre 94 et et 323 sous l'hypothèse d'hétéroscédasticité. Tout comme sous l'hypothèse d'une variance proportionnelle à la concentration, les meilleures précisions absolues sont obtenues pour les faibles concentrations.
@@ -367,8 +398,11 @@ a <- somme_inv/D_het -r^2/K_het
 b <- v1 -2*n/D_het
 c <- v0 + 1/somme_inv + n^2/somme_inv/D_het
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ2 <- (-b - sqrt(delta))/2/a
+LOQ1 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 
 Le coefficient a étant négatif, la précision de 15% sera obtenue avec un niveau de confiance de 90% pour des concentrations supérieures à 116. Cette valeur  est située entre les valeurs obtenues précédemment (103 sous hypothèse de variance proportionnelle à la concentration et 143 sous hypothèse d'homoscédasticité).
@@ -408,6 +442,7 @@ var_b <- var(blancs$Temps)
 sigma_b <- sqrt(var_b)
 n = 30
 LOB1 <- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modelecomplet$coefficients[1])/modelecomplet$coefficients[2]
+names(LOB1) <- "LOB"
 LOB1
 
 ```
@@ -424,6 +459,7 @@ D <- det(XTX)
 somme = sum(dagic$Concentration)
 n <- 34
 LOB2 <-  qt(0.95, n - 2)*sigma(modelecomplet)*sqrt(1 + 1/n + somme^2/n/D)/modelecomplet$coefficients[2]
+names(LOB2) <- "LOB"
 LOB2
 ```
 La valeur de la limite de blanc calculéé ici est très proche de celles calculées à partir des mesures de blancs. Cela provient du fait que la valeur de la constante estimée par la régression est proche de la moyenne des blancs et du fait que la variance résiduelle de la régression est proche de la variance des mesures de blancs.
@@ -436,8 +472,9 @@ a <- 1 - K*n/D
 b <- -2*(LOB1 -K*somme/D)
 c <- LOB1^2 - K*(1+1/n + somme^2/n/D)
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-
+LOD <- (-b + sqrt(delta))/2/a
+names(LOD)<-"LOD"
+LOD
 ```
 Il est difficile de comparer la limite de détection obtenue ici avec la limite de détection calculées précédemment dans le cadre homoscédastique car les limites de blancs qui servent de base à ce calcul sont sensiblement différentes. On peut toutefois noter que l'écart entre limite de blanc et limite de détection à considérablement diminué, passant de plus de 20 à moins de 6. Ceci est essentiellement du à la baisse de la variance résiduelle et de la variance des estimateurs de des coefficients de la régression constatées lorsqu'on intègre les mesures de blancs au calcul de la droite d'étalonnage.
 
@@ -451,8 +488,11 @@ a <- n/D
 b <- -2*somme/D
 c <- somme^2/n/D + 1 + 1/n - p^2/K
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ1 <- (-b - sqrt(delta))/2/a
+LOQ2 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 
 La plage de concentration permettant d'obtenir la précision voulue est passée de [94, 323] à [0, 1775]. A nouveau cela est essentiellement du à la baisse de la variance résiduelle et des variances des estimateurs des coefficients de la régression.
@@ -468,8 +508,11 @@ a <- n/D - r^2/K
 b <- -2*somme/D
 c <- somme^2/n/D + 1 + 1/n
 delta <- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a
-(-b - sqrt(delta))/2/a
+LOQ2 <- (-b - sqrt(delta))/2/a
+LOQ1 <- (-b + sqrt(delta))/2/a
+names(LOQ1) <- "LOQ1"
+names(LOQ2) <- "LOQ2"
+c(LOQ1,LOQ2)
 ```
 La précision relative voulue sera obtenue pour des concentrations supérieures à 44.
 La limite ainsi obtenue est très sensiblement inférieure à celle sous l'hypothèse d'homoscédasticité sans utilisé les mesures de blancs pour la construction de la courbe d'étalonnage (144). Une nouvelle fois de plus, c'est la baisse de de la variance résiduelle et la baisse de la variance des coefficients de la régression qui sont les causes principales de cet écart.

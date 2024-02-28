@@ -455,8 +455,10 @@ le quantile empirique. Dans toutes ce document nous considérons un
 niveau de confiance de 95% pour les calculs de limite de blanc et de
 détection et un niveau de confiance de 90% pour les limites de
 quantification.</p>
-<pre class="r"><code>(quantile(blancs$Temps, 0.95) - modele$coefficients[1])/modele$coefficients[2]</code></pre>
-<pre><code>##        95% 
+<pre class="r"><code>LOB&lt;-(quantile(blancs$Temps, 0.95) - modele$coefficients[1])/modele$coefficients[2]
+names(LOB) &lt;- c(&quot;LOB&quot;)
+LOB</code></pre>
+<pre><code>##        LOB 
 ## -0.9117595</code></pre>
 <p>On obtient ici une valeur négative ce qui provient du fait que
 l’essentiel des mesures de blanc sont situés sous la droite de
@@ -467,9 +469,10 @@ var_b &lt;- var(blancs$Temps)
 sigma_b &lt;- sqrt(var_b)
 n = 30
 LOB1 &lt;- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modele$coefficients[1])/modele$coefficients[2]
+names(LOB1) &lt;- c(&quot;LOB&quot;)
 LOB1</code></pre>
-<pre><code>## (Intercept) 
-##    0.383705</code></pre>
+<pre><code>##      LOB 
+## 0.383705</code></pre>
 <p>On constate que dans le cadre Gaussien la limite de blanc estimée est
 légèrement positive. Il est à noter que contrairement au quantile
 empirique, la limite de blanc calculée dans le cadre du modèle Gaussien
@@ -485,9 +488,10 @@ D &lt;- det(XTX)
 somme = sum(dagi$Concentration)
 n &lt;- 4
 LOB2 &lt;-  qt(0.95, n - 2)*sigma(modele)*sqrt(1 + 1/n + somme^2/n/D)/modele$coefficients[2]
+names(LOB2) &lt;- c(&quot;LOB&quot;)
 LOB2</code></pre>
-<pre><code>## dagi$Concentration 
-##            23.5166</code></pre>
+<pre><code>##     LOB 
+## 23.5166</code></pre>
 <p>Cette limite est très supérieure à celles calculées avec les mesures
 de blancs dédiées. Ceci s’explique par le fait que d’une part la courbe
 d’étalonnage est située au dessus de la plupart des mesures de blancs.
@@ -508,9 +512,11 @@ a &lt;- 1 - K*n/D
 b &lt;- -2*(LOB1 -K*somme/D)
 c &lt;- LOB1^2 - K*(1+1/n + somme^2/n/D)
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>## (Intercept) 
-##    23.45104</code></pre>
+LOD &lt;- (-b + sqrt(delta))/2/a
+names(LOD) &lt;- c(&quot;LOD&quot;)
+LOD</code></pre>
+<pre><code>##      LOD 
+## 23.45104</code></pre>
 <p>On peut remarquer que la limite de détection ainsi calculée est
 proche de la limite de blanc calculée avec les données d’étalonnage. Ce
 n’est pas complètement le fruit du hasard. La Limite de blanc que nous
@@ -536,12 +542,13 @@ a &lt;- n/D
 b &lt;- -2*somme/D
 c &lt;- somme^2/n/D + 1 + 1/n - p^2/K
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>## dagi$Concentration 
-##           322.6527</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>## dagi$Concentration 
-##           94.34725</code></pre>
+LOQ1 &lt;- (-b - sqrt(delta))/2/a
+LOQ2 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+##  94.34725 322.65275</code></pre>
 <p>La précision souhaitée sera obtenue pour des concentrations comprises
 entre 94 et 323.</p>
 </div>
@@ -557,12 +564,13 @@ a &lt;- n/D - r^2/Kbis
 b &lt;- -2*somme/D
 c &lt;- somme^2/n/D + 1 + 1/n
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>## dagi$Concentration 
-##          -56.56287</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>## dagi$Concentration 
-##           51.57481</code></pre>
+LOQ2 &lt;- (-b - sqrt(delta))/2/a
+LOQ1 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+## -56.56287  51.57481</code></pre>
 <p>La coefficient a étant négatif, la précision voulue sera obtenue à
 partir d’une concentration de 51.6. Ici nous n’avons pas d’estimation de
 la confiance associée à cette limite. Si l’on souhaite une précision de
@@ -572,12 +580,13 @@ a &lt;- n/D - r^2/K
 b &lt;- -2*somme/D
 c &lt;- somme^2/n/D + 1 + 1/n
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>## dagi$Concentration 
-##           -190.342</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>## dagi$Concentration 
-##           143.6045</code></pre>
+LOQ2 &lt;- (-b - sqrt(delta))/2/a
+LOQ1 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+## -190.3420  143.6045</code></pre>
 <p>La limite ainsi obtenue (143.6) est très sensiblement supérieure à
 celle obtenue en se basant simplement sur le coefficient de
 variation.</p>
@@ -637,8 +646,9 @@ modélisation ?</p>
 :</p>
 <pre class="r"><code>n = 30
 LOB_het1 &lt;- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modeleHet$coefficients[1])/modeleHet$coefficients[2]
+names(LOB_het1) &lt;- &quot;LOB&quot;
 LOB_het1</code></pre>
-<pre><code>##       x1 
+<pre><code>##      LOB 
 ## 1.110498</code></pre>
 <p>Sans surprise, les coefficients obtenus par les deux régressions
 étant similaires, les limites de blanc obtenues à partir de mesures
@@ -655,8 +665,9 @@ D_het &lt;- det(XTX)
 K_het = (qt(0.05, n - 2)*sigma(modeleHet)/modeleHet$coefficients[2])^2
 
 LOB_het2 = sqrt(K_het*(1/somme_inv + n^2/D_het/somme_inv))
+names(LOB_het2) &lt;- &quot;LOB&quot;
 LOB_het2</code></pre>
-<pre><code>##      x2 
+<pre><code>##     LOB 
 ## 4.12768</code></pre>
 <p>La limite de blanc ici obtenue est bien inférieure à celle obtenue
 dans le cas homoscédastique. Cela provient du fait qu’ici on ne prend en
@@ -672,8 +683,10 @@ sous l’hypothèse d’homoscédasticité.</p>
 b &lt;- -2*LOB_het1 -K_het*(1 -2*n/D_het)
 c &lt;- LOB_het1^2 - K_het*(1/somme_inv + n^2/somme_inv/D_het)
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>##       x1 
+LOD &lt;-(-b + sqrt(delta))/2/a
+names(LOD) &lt;- &quot;LOD&quot;
+LOD</code></pre>
+<pre><code>##      LOD 
 ## 6.524142</code></pre>
 <p>On obtient une limite de détection sensiblement inférieure à celle
 obtenue dans le cas homoscédastique (23.5). Ceci est du au fait que la
@@ -692,12 +705,13 @@ a &lt;- somme_inv/D_het
 b &lt;- 1 -2*n/D_het
 c &lt;- 1/somme_inv + n^2/somme_inv/D_het - p^2 /K_het
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>##       x2 
-## 193.8365</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>##       x2 
-## -854.024</code></pre>
+LOQ1 &lt;- (-b - sqrt(delta))/2/a
+LOQ2 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+## -854.0240  193.8365</code></pre>
 <p>Ici la précision sera atteinte pour des concentrations inférieures à
 194. Elle était obtenue pour des concentrations entre 94 et et 323 sous
 l’hypothèse d’hétéroscédasticité. L’hypothèse d’une variance
@@ -713,12 +727,13 @@ a &lt;- somme_inv/D_het -r^2/K_het
 b &lt;- 1 -2*n/D_het
 c &lt;- 1/somme_inv + n^2/somme_inv/D_het
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>##        x2 
-## -8.402772</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>##       x2 
-## 103.0345</code></pre>
+LOQ2 &lt;- (-b - sqrt(delta))/2/a
+LOQ1 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##       LOQ1       LOQ2 
+##  -8.402772 103.034476</code></pre>
 <p>Le coefficient a étant négatif, la précision de 15% sera obtenue avec
 un niveau de confiance de 90% pour des concentrations supérieures à 103,
 ce qui est sensiblement inférieur à la valeur obtenue sous l’hypothèse
@@ -787,8 +802,9 @@ plot(dagi$Concentration,res,xlab=&quot;Concentration&quot;, ylab=&quot;Résidus 
 :</p>
 <pre class="r"><code>n = 30
 LOB_het1 &lt;- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modeleHet$coefficients[1])/modeleHet$coefficients[2]
+names(LOB_het1) &lt;- &quot;LOB&quot;
 LOB_het1</code></pre>
-<pre><code>##       x1 
+<pre><code>##      LOB 
 ## 1.583762</code></pre>
 <p>Les coefficients de la régressions étant proches de ceux obtenues
 dans les deux cas précécents, on retrouve une limite de blanc du même
@@ -806,8 +822,9 @@ D_het &lt;- det(XTX)
 K_het = (qt(0.05, n - 2)*sigma(modeleHet)/modeleHet$coefficients[2])^2
 
 LOB_het = sqrt(K_het*(v0 + 1/somme_inv + n^2/D_het/somme_inv))
+names(LOB_het) &lt;- &quot;LOB&quot;
 LOB_het</code></pre>
-<pre><code>##       x2 
+<pre><code>##      LOB 
 ## 11.73394</code></pre>
 <p>La valeur obtenue est située entre les deux limites obtenues
 précédemment. Cela provient du fait que la variance pour des
@@ -820,8 +837,10 @@ que celle obtenue sous hypothèse d’homoscédaticité.</p>
 b &lt;- -2*LOB_het1 -K_het*(v1 -2*n/D_het)
 c &lt;- LOB_het1^2 - K_het*(v0 + 1/somme_inv + n^2/somme_inv/D_het)
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>##       x1 
+LOD &lt;- (-b + sqrt(delta))/2/a
+names(LOD) &lt;- &quot;LOD&quot;
+LOD</code></pre>
+<pre><code>##      LOD 
 ## 14.00275</code></pre>
 <p>La limite de détection obtenue est là encore située entre les deux
 limites précédemment calculées. Là encore cela provient d’une valeur
@@ -838,12 +857,13 @@ a &lt;- somme_inv/D_het
 b &lt;- v1 -2*n/D_het
 c &lt;- v0 + 1/somme_inv + n^2/somme_inv/D_het - p^2 /K_het
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>##       x2 
-## 209.9337</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>##        x2 
-## -690.5946</code></pre>
+LOQ1 &lt;- (-b - sqrt(delta))/2/a
+LOQ2 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+## -690.5946  209.9337</code></pre>
 <p>Ici la précision sera atteinte pour des concentrations inférieures à
 210 contre 194 sous l’hypothèse de variance proportionnelle à la
 concentration. Elle était obtenue pour des concentrations entre 94 et et
@@ -859,12 +879,13 @@ a &lt;- somme_inv/D_het -r^2/K_het
 b &lt;- v1 -2*n/D_het
 c &lt;- v0 + 1/somme_inv + n^2/somme_inv/D_het
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>##        x2 
-## -58.98194</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>##       x2 
-## 116.0725</code></pre>
+LOQ2 &lt;- (-b - sqrt(delta))/2/a
+LOQ1 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+## -58.98194 116.07251</code></pre>
 <p>Le coefficient a étant négatif, la précision de 15% sera obtenue avec
 un niveau de confiance de 90% pour des concentrations supérieures à 116.
 Cette valeur est située entre les valeurs obtenues précédemment (103
@@ -950,9 +971,10 @@ var_b &lt;- var(blancs$Temps)
 sigma_b &lt;- sqrt(var_b)
 n = 30
 LOB1 &lt;- (moyenne_b + qt(0.95, n - 1)*sigma_b*sqrt(1 + 1/n) - modelecomplet$coefficients[1])/modelecomplet$coefficients[2]
+names(LOB1) &lt;- &quot;LOB&quot;
 LOB1</code></pre>
-<pre><code>## (Intercept) 
-##    5.465728</code></pre>
+<pre><code>##      LOB 
+## 5.465728</code></pre>
 <p>On constate que la limite de blanc est ici sensiblement supérieure à
 celles estimées précédemment avec des mesures dédiées. Cela provient
 essentiellement de la baisse du l’estimation de la constante dans la
@@ -968,9 +990,10 @@ D &lt;- det(XTX)
 somme = sum(dagic$Concentration)
 n &lt;- 34
 LOB2 &lt;-  qt(0.95, n - 2)*sigma(modelecomplet)*sqrt(1 + 1/n + somme^2/n/D)/modelecomplet$coefficients[2]
+names(LOB2) &lt;- &quot;LOB&quot;
 LOB2</code></pre>
-<pre><code>## dagic$Concentration 
-##            6.604408</code></pre>
+<pre><code>##      LOB 
+## 6.604408</code></pre>
 <p>La valeur de la limite de blanc calculéé ici est très proche de
 celles calculées à partir des mesures de blancs. Cela provient du fait
 que la valeur de la constante estimée par la régression est proche de la
@@ -986,9 +1009,11 @@ a &lt;- 1 - K*n/D
 b &lt;- -2*(LOB1 -K*somme/D)
 c &lt;- LOB1^2 - K*(1+1/n + somme^2/n/D)
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>## (Intercept) 
-##    12.06528</code></pre>
+LOD &lt;- (-b + sqrt(delta))/2/a
+names(LOD)&lt;-&quot;LOD&quot;
+LOD</code></pre>
+<pre><code>##      LOD 
+## 12.06528</code></pre>
 <p>Il est difficile de comparer la limite de détection obtenue ici avec
 la limite de détection calculées précédemment dans le cadre
 homoscédastique car les limites de blancs qui servent de base à ce
@@ -1010,12 +1035,13 @@ a &lt;- n/D
 b &lt;- -2*somme/D
 c &lt;- somme^2/n/D + 1 + 1/n - p^2/K
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>## dagic$Concentration 
-##            1774.756</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>## dagic$Concentration 
-##           -1725.697</code></pre>
+LOQ1 &lt;- (-b - sqrt(delta))/2/a
+LOQ2 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+## -1725.697  1774.756</code></pre>
 <p>La plage de concentration permettant d’obtenir la précision voulue
 est passée de [94, 323] à [0, 1775]. A nouveau cela est essentiellement
 du à la baisse de la variance résiduelle et des variances des
@@ -1030,12 +1056,13 @@ a &lt;- n/D - r^2/K
 b &lt;- -2*somme/D
 c &lt;- somme^2/n/D + 1 + 1/n
 delta &lt;- b^2 - 4*a*c
-(-b + sqrt(delta))/2/a</code></pre>
-<pre><code>## dagic$Concentration 
-##            -44.3288</code></pre>
-<pre class="r"><code>(-b - sqrt(delta))/2/a</code></pre>
-<pre><code>## dagic$Concentration 
-##            44.01327</code></pre>
+LOQ2 &lt;- (-b - sqrt(delta))/2/a
+LOQ1 &lt;- (-b + sqrt(delta))/2/a
+names(LOQ1) &lt;- &quot;LOQ1&quot;
+names(LOQ2) &lt;- &quot;LOQ2&quot;
+c(LOQ1,LOQ2)</code></pre>
+<pre><code>##      LOQ1      LOQ2 
+## -44.32880  44.01327</code></pre>
 <p>La précision relative voulue sera obtenue pour des concentrations
 supérieures à 44. La limite ainsi obtenue est très sensiblement
 inférieure à celle sous l’hypothèse d’homoscédasticité sans utilisé les
