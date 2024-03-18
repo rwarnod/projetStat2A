@@ -1,0 +1,312 @@
+---
+title: "APIX multi"
+author: "Equipe 9"
+date: "2024-02-24"
+output:
+  html_document: default
+  pdf_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+```{r libraries, warning = FALSE, echo=FALSE}
+library(dplyr)
+
+```
+
+
+
+```{r charge_data,fig.width=4.5,fig.height=3.5, echo=FALSE}
+#fonction de calcul des limites
+calcul_limites <- function(modele, level){
+  X <- model.matrix(modele)
+  XTX <- t(X) %*% X
+  D <- det(XTX)
+  somme = sum(X[,2])
+  n <- nrow(X)
+  LOB <-  qt(level, n - 2)*sigma(modele)*sqrt(1 + 1/n + somme^2/n/D)/abs(modele$coefficients[2])
+  r = 0.15
+  Kbis <- (sigma(modele)/modele$coefficients[2])^2
+  a <- n/D - r^2/Kbis
+  b <- -2*somme/D
+  c <- somme^2/n/D + 1 + 1/n
+  delta <- b^2 - 4*a*c
+  LOQ <- (-b - sqrt(delta))/2/a
+  return(data.frame(LOB, LOQ))
+}
+
+#function de calcul d'une région de confiance
+region_conf <- function(model, level, x, y){
+  X <- model.matrix(modele)
+  XTX <- t(X) %*% X
+  b0 <- modele$coefficients[1]
+  b1 <- modele$coefficients[2]
+  sigma <- sigma(modele)
+  n <- nrow(X)
+  rc <- ((XTX[1,1]*(b0-x) + XTX[1,2]*(b1-y))*(b0-x) +
+           (XTX[2,1]*(b0-x) + XTX[2,2]*(b1-y))*(b1-y))/2/sigma^2 - qf(level,2,n-2)
+  return(rc)
+}
+#dessine la région de confiance
+dessine_region_conf<- function(modele, level, xlim, ylim,  color){
+  # Définir une grille de valeurs pour x et y
+  x <- seq(xlim[1], xlim[2], length.out = 100)
+  y <- seq(ylim[1], ylim[2], length.out = 100)
+  
+  # Créer une grille 2D de valeurs pour x et y
+  grid <- expand.grid(x = x, y = y)
+  
+  # Calculer les valeurs de z pour l'équation x^2 + 3y^2 + xy = 0
+  z <- with(grid, region_conf(modele, level, x, y))
+
+  # Transformer les valeurs de z en une matrice de dimensions correspondant à x et y
+  z_matrix <- matrix(z, nrow = length(y), ncol = length(x), byrow = TRUE)
+  
+  # Tracer les lignes de niveau de z
+  contour(x, y, t(z_matrix), levels = 0, drawlabels = FALSE, xlab = "X", ylab = "Y", col= color, add = TRUE)
+
+}
+
+# Obtenir la liste des fichiers correspondants au motif "arga*"
+files <- list.files(pattern = "apix-2*")
+
+
+
+
+```
+
+# Apixaban (anti-Xa) :
+
+Nous diposons d'échantillons d'étalonnage à diverses dates, pour divers automates et divers réactifs. Nous allons étudier l'influence de ces différents facteurs sur les droites d'étalonage.
+
+Commençons par afficher pour chaque échantillon d'étalonnage le nuage de point et la droite d'étalonnage :
+```{r tableau regression,fig.width=4.5,fig.height=3.5, echo=FALSE}
+# régressions
+for (file in files) {
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  summary_modele <- summary(modele)
+  
+  plot(x=mes_data$Concentration, y=mes_data$LOGDO, main = file)
+  abline(modele, col = "red")
+}
+```
+
+On constate que sur chaque échantillon les points semblent alignés et qu'aucun point ne s'écarte significativement de la droite de régression linéaire.
+
+Voyons l'aspect des résidus de régression pour nos différents échantillons :
+
+```{r tableau résidus,fig.width=4.5,fig.height=3.5, echo=FALSE}
+#résidus
+for (file in files) {
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  res <- rstudent(modele)
+  plot(mes_data$Concentration,res,xlab="Concentration", ylab="Résidus studentisés", main = file)
+  abline(h=0, col="red")
+}
+```
+
+Ici, rien ne nous incite à remettre en cause l'hypothèse d'homoscédasticité.
+
+Affichons sur un même graphique l'ensemble de nos échantillons :
+
+```{r points}
+
+couleurs <- rainbow(length(files))
+
+i = 1
+for (file in files) {
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)  
+  if(i==1){
+    plot(mes_data$Concentration, mes_data$LOGDO, col = couleurs[i], xlim=c(0,500), ylim = c(-2, 0.5))
+  }
+  else{
+    points(mes_data$Concentration, mes_data$LOGDO, col = couleurs[i])
+  }
+  i <- i+1
+}
+legend("topright", legend = c(1:length(files)), col = couleurs[1:length(files)], lty = 1)
+
+```
+
+Tout comment lors de l'étude de l'argabotran, on constate une augmentation de la dispersion avec l'augmentation des concentrations. Sur ce graphique, il est cependant difficile de voir si cette augmentation apparente de la dispersion se retrouve sur chaque échantillon d'étalonnage ou provient d'écarts de tendances des différentes échantillons d'étalonnage.
+
+Nous allons maintenant construire un tableau contenant les coefficients des différentes régressions linéaires ainsi que leurs intervalles de confiance à 90% et la variance résiduelle de la régression. Ce tableau contiendra aussi les limites de blancs calculées à partir des courbes d'étalonnage pour un niveau de confiance de 95% et la limite de quantificaton relative pour une précision de 15% et un niveau de confiance de 90%.
+
+```{r tableau resultat}
+col_names <- c("produit", "date", "réactif", "automate", "b0", "b0-","b0+", "sigmab0", "b1","b1-","b1+", "sigmab1","sigma", "LOB", "LOQ")
+tab_out <- data.frame(matrix(ncol = length(col_names), nrow = 0))
+for (file in files) {
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  summary_modele <- summary(modele)
+
+  tokens <- unlist(strsplit(gsub("\\.csv","", basename(file)), "-")) 
+  level <- 0.95
+  b0 <- modele$coefficients[1]
+  b1 <- modele$coefficients[2]
+  sigma_b0 <- summary_modele$coefficients[1,2]
+  sigma_b1 <- summary_modele$coefficients[2,2]
+  n <- nrow(mes_data)
+  b0m <- b0 - qt(level, n-2) * sigma_b0
+  b0p <- b0 + qt(level, n-2) * sigma_b0
+  b1m <- b1 - qt(level, n-2) * sigma_b1
+  b1p <- b1 + qt(level, n-2) * sigma_b1
+  limites <- calcul_limites(modele, level)
+
+  ligne <- c(b0, b0m, b0p, sigma_b0, b1, b1m, b1p, sigma_b1, sigma(modele), limites$LOB, limites$LOQ)
+
+  tab_out <-rbind(tab_out, c(tokens, round(ligne,5)))
+
+}
+colnames(tab_out) <- col_names
+
+print(tab_out)
+write.csv2(tab_out, file = "apix_output.csv", sep = ";")
+```
+
+On constate une forte variabilité aussi bien des limites blanc que des limites de quantification, qui peuvent passer du simple au double d'une courbe d'étalonnage à l'autre ce qui s'explique en grande partie pas les écarts de variance résiduelle. 
+
+Concernant les coefficients de la régression linéaire, on constate que les intervalles de confiance associés aux $\hat{\beta_0}$ des différents courbes d'étalonnage sont parfois disjoints. De même, les intervalles de confiance associées aux $\hat{\beta_0}$ des différentes courbes sont parfois disjoints ce qui laisse envisager que les différences de pente entre les droites d'étalonnage ne soient pas uniquement le fruit du hasard.
+
+Les régions de confiances associées aux couples $(\hat{\beta_0}, \hat{\beta_1})$ représentées sur le graphique suivant permettent de visualiser ces écarts.
+
+```{r region confiance}
+xlim = c(0.13, 0.30)
+ylim = c( -0.0046, -0.0035)
+plot(NULL, xlim = xlim, ylim = ylim , xlab = "b0", ylab = "b1", main = "région de confiance")
+
+couleurs <- rainbow(length(files))
+
+i = 1
+for (file in files) {
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  dessine_region_conf(modele, 0.95, xlim, ylim, couleurs[i])
+  i <- i+1
+}
+legend("topright", legend = c(1:length(files)), col = couleurs[1:length(files)], lty = 1)
+
+```
+
+## Dépendance à l'automate
+Nous disposons de deux echantillons d'étalonnage réalisés le même jour avec le même réactif sur deux automates différents. Comparons leurs régions de confiances :
+
+```{r region confiance automate}
+xlim = c(0.13, 0.30)
+ylim = c( -0.0046, -0.0035)
+plot(NULL, xlim = xlim, ylim = ylim , xlab = "b0", ylab = "b1", main = "région de confiance")
+
+couleurs <- c("red","blue")
+
+i = 1
+for (file in files) {
+  if(i<7){
+    i = i+1
+    next
+  }
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  dessine_region_conf(modele, 0.95, xlim, ylim, couleurs[i-6])
+  i <- i+1
+}
+legend("topright", legend = tab_out$automate[7:8], col = couleurs, lty = 1)
+
+```
+
+Nous constatons que les régions de confiance sont alignées verticalement, ce qui ne laisse pas présager de différences de $\hat{\beta_0}$. En revanche les deux régions de confiance sont disjointes et sont situées l'une au dessus de l'autre ce qui indique que l'automate pourrait avoir une influence sur la pente de la courbe d'étalonnage.
+
+## Dépendance au réactif
+
+Deux lots de réactif ont été utilises lors de la confection de l'échantillon de courbe d'étalonnage. Nous allons Comparer en terme de réactif les échantillons réalisés sur l'automate 3707 :
+
+```{r region confiance reactif}
+xlim = c(0.13, 0.30)
+ylim = c( -0.0046, -0.0035)
+plot(NULL, xlim = xlim, ylim = ylim , xlab = "b0", ylab = "b1", main = "région de confiance")
+
+i = 1
+couleur <- "red"
+for (file in files) {
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  dessine_region_conf(modele, 0.95, xlim, ylim, couleur)
+  i <- i+1
+  if(i>3){
+    couleur <- "blue"
+  }
+  if(i>7){
+    break
+  }
+}
+legend("topright", legend = c(262030, 263569), col = c("red", "blue"), lty = 1)
+
+```
+
+On remarque un décallage horizontale entre les régions de confiance des courbes d'étalonnage réalisé avec le réactif 262030 et celles réalisés avec le réactif 263569. Le réactif semble avoir une influence sur la valeur de $\hat{\beta_0}$. C'est à dire qu'un changement de réactif pourrait générer un décalage vertical de la courbe d'étalonnage. Il faut toutefois rester prudent sur les interprétations. Nous ne disposons ici que de deux lots de réactifs. Nos observations ne restent valables que sur ces deux lots de réactifs et ne peuvent en aucun cas être généralisées.
+
+## Dépendance au temps
+Pour l'automate 3707, pour chacun des 2 lots de réactifs nous disposons de plusieurs courbes d'étalonnage réalisées à différentes date. 
+
+Commençons par nous intéresser aux régions de confiances associées aux courbes d'étalonnage réalisées avec le réactif 262030 :
+
+```{r region confiance temps 1}
+xlim = c(0.13, 0.30)
+ylim = c( -0.0046, -0.0035)
+plot(NULL, xlim = xlim, ylim = ylim , xlab = "b0", ylab = "b1", main = "région de confiance")
+
+i = 1
+couleurs <- c("red","blue","darkgreen")
+for (file in files) {
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  dessine_region_conf(modele, 0.95, xlim, ylim, couleurs[i])
+  i <- i+1
+  if(i>3){
+    break
+  }
+
+}
+legend("topright", legend = tab_out$date[1:3], col = couleurs[1:3], lty = 1)
+
+```
+
+Il semblerait que les la date de réalisation de la courbe d'étalonnage puisse avoir une influence sur sa pente. Voyons ce qu'il en est des régions de confiances associées aux courbes d'étalonnage réalisées avec le réactif 263569.
+
+```{r region confiance temps 2}
+xlim = c(0.13, 0.30)
+ylim = c( -0.0046, -0.0035)
+plot(NULL, xlim = xlim, ylim = ylim , xlab = "b0", ylab = "b1", main = "région de confiance")
+
+i = 1
+couleurs <- c("red","blue","darkgreen", "darkgrey")
+for (file in files) {
+  if(i<4){
+    i <- i+1
+    next
+  }
+  mes_data = read.csv2(file, sep = ";")
+  mes_data$LOGDO <- log(mes_data$DO)
+  modele <- lm(formula = mes_data$LOGDO ~ mes_data$Concentration)
+  dessine_region_conf(modele, 0.95, xlim, ylim, couleurs[i-3])
+  i <- i+1
+  if(i>7){
+    break
+  }
+
+}
+legend("topright", legend = tab_out$date[4:7], col = couleurs[1:4], lty = 1)
+```
+
+La encore on peut envisager une influence de la date de réalisation de la courbe d'étalonnage sur sa pente. En revanche il est très difficile de savoir ce qui provoquerait ces variations de pentes. On peut ici noter que les echantillons de concentration utilisés le 09/07/2023 pour le réactif 262030 et le 20/09/2023 pour le réactif 263569 différent des échantillons de concentration utilisés aux autres dates. Toutefois cela n'explique pas toutes les différences. Pour le lot de réactif 262030 deux courbes d'étalonnages réalisées sur le même automate avec le même échantillon de concentration à un mois d'intervalle sont associées à des régions de confiance disjointes.  Est ce le vieillisement des lots de réactifs ou des échantillons de concentration ? Les automates sont des machines sophistiqués permettant de réalisées des analyses à température quasiment constante, mais d'autres phénomènes telle que la pression atmosphérique, le niveau d'humidité ou la position de la lune peuvent ils avoir une influences ? Nous manquons d'informations pour apporter ne serait-ce qu'un début de réponse à ces questions.
