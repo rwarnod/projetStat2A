@@ -15,7 +15,10 @@ knitr::opts_chunk$set(echo = TRUE)
 library(dplyr)
 
 ```
+```{r libraries, warning = FALSE, echo=FALSE}
+library(xtable)
 
+```
 
 
 ```{r charge_data,fig.width=4.5,fig.height=3.5, echo=FALSE}
@@ -168,7 +171,8 @@ for (file in files) {
 }
 colnames(tab_out) <- col_names
 
-print(tab_out)
+(tab_out)
+xtable(tab_out, caption = "Apix")
 write.csv2(tab_out, file = "apix_output.csv", sep = ";")
 ```
 
